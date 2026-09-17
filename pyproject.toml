@@ -1,0 +1,51 @@
+[project]
+name = "graphingest"
+version = "0.1.0"
+description = "Ingest a folder of PDFs and an RIS export into a Causal Mosaic graph"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml>=6.0",
+    "linkml>=1.7",
+    "linkml-runtime>=1.7",
+    "jsonschema>=4.20",
+    "openai>=1.30",        # used for every OpenAI-compatible endpoint, Ollama included
+    "rdflib>=6.0",         # reads ontology files for the "local" grounding backend
+]
+
+[project.optional-dependencies]
+# PDF -> markdown, layout-aware. Large (pulls torch); only graphingest.convert
+# needs it, and --converter pymupdf works without it.
+#
+# Pinned below 2.0: marker-pdf 2.x rewired Surya's layout/recognition models
+# from in-process torch to an OpenAI-compatible inference *server* -- vllm on
+# CUDA, otherwise the llama.cpp `llama-server` binary, which ships for
+# macOS/Linux only and is not on PATH on a fresh Windows install. build_converter
+# below still expects the 1.x in-process API (PdfConverter, create_model_dict);
+# upgrading past 2.0 needs that rewritten alongside a native OCR server, not a
+# quiet version bump. 1.10.2 is the newest 1.x release.
+marker = ["marker-pdf>=1.0,<2.0"]
+# The fast conversion path -- no models, converts a paper in well under a
+# second. Select it without --converter by setting convert.default_converter
+# to pymupdf in config/pipeline.yaml.
+pymupdf = ["pymupdf>=1.24"]
+# Ontology Access Kit: only needed for grounding routes that use "oaklib:",
+# which is how you ground against a pinned local ontology, or with no network.
+# The default ols/wikidata backends use the standard library.
+oaklib = ["oaklib>=0.5"]
+# Only needed if config/pipeline.yaml sets provider: anthropic.
+anthropic = ["anthropic>=0.40"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+graph-ingest = "graphingest.run:main"
+graph-ingest-ris = "graphingest.ris:main"
+graph-ingest-convert = "graphingest.convert:main"
+graph-ingest-annotate = "graphingest.annotate:main"
+graph-ingest-merge = "graphingest.merge:main"
+graph-ingest-validate = "graphingest.validate:main"
+
+[tool.setuptools]
+packages = ["graphingest"]
+
+[tool.setuptools.package-data]
+"*" = ["*.yaml"]

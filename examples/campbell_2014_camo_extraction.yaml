@@ -1,0 +1,1080 @@
+graph_id: camo:campbell_corson_2014_hbl_peatland
+schema_version: 0.7.9
+provenance:
+  ontology_framework: ELMO + CAMO
+  causal_mosaic_version: 0.7.9
+  created: '2026-07-07T00:00:00+00:00'
+  source_corpus: Restoration ecology single-article annotation (FACETS/EcoWeaver pilot)
+  project: EcoWeaver
+  annotation_guide_version: migrated 0.7.3 -> 0.7.9
+nodes:
+- id: camo:po4_fertilization
+  name: Rock phosphate fertilization
+  entity_type: management_intervention
+  entity_term: rock phosphate fertilization (0-2-0 NPK; 30 g/m² low, 90 g/m² high)
+  measured_attribute: phosphate addition rate
+  state_or_change_qualifier: increased
+  source_spans:
+  - text: The phosphate fertilizer consisted of rock phosphate (0-2-0, NPK), with
+      a dose of 30 g m-2 rock phosphate in the low dose treatment and 90 g m-2 in
+      the high dose treatments.
+- id: camo:straw_mulch
+  name: Straw mulch application (microclimate amelioration)
+  entity_type: management_intervention
+  entity_term: straw mulch cover (Terrafix S31)
+  measured_attribute: mulch cover (present/absent)
+  state_or_change_qualifier: present
+  source_spans:
+  - text: The mulch consisted of straw attached to a plastic mesh (Terrafix® S31),
+      cut into 2.5 m × 2.5 m squares and pegged into place over plots.
+- id: camo:mulch_fert_alone
+  name: Mulch and phosphorus fertilization alone (no Sphagnum fragment spreading)
+  entity_type: management_intervention
+  entity_term: microclimate amelioration + phosphorus fertilization without fragment
+    introduction
+  measured_attribute: combined treatment (fragments withheld)
+  state_or_change_qualifier: occurred
+  source_spans:
+  - text: Could we simplify these protocols by just ameliorating environmental conditions
+      and not spreading fragments?
+- id: camo:fragment_spreading
+  name: Spreading of Sphagnum fragments over bare peat
+  entity_type: management_intervention
+  entity_term: Sphagnum fragment spreading
+  measured_attribute: fragment introduction (present/absent)
+  state_or_change_qualifier: occurred
+  source_spans:
+  - text: The spreading of fragments on top of severely disturbed surface peats appears
+      to be required in order to rehabilitate peatlands, even when extensive undisturbed
+      peatlands are found nearby.
+  applied_to:
+  - entity_term: Q30019
+- id: camo:large_fragment_spreading
+  name: Spreading large Sphagnum fragments with capitula (+ light fertilization, no
+    mulch)
+  entity_type: management_intervention
+  entity_term: spreading of large Sphagnum fragments with capitula
+  measured_attribute: fragment size / capitula presence
+  state_or_change_qualifier: occurred
+  source_spans:
+  - text: We have already demonstrated that other severely disturbed peat surfaces
+      in the HBL can be successfully revegetated if Sphagnum fragments are spread,
+      with light fertilization but no mulch (Corson and Campbell 2013).
+  applied_to:
+  - entity_term: Q30019
+- id: camo:low_surface_phosphorus
+  name: Low bioavailable phosphorus in surface peat
+  entity_type: environmental_variable
+  entity_term: phosphorus
+  measured_attribute: bioavailable phosphorus concentration (< 0.03 mg/kg)
+  state_or_change_qualifier: decreased
+  source_spans:
+  - text: Sphagnum requires phosphorus to germinate and establish, but phosphorus
+      is in extremely low concentrations in peatlands (Sundberg and Rydin 2002).
+  - text: Phosphorus content of these peats is quite low (bioavailable phosphorus
+      < 0.03 mg/kg, n = 5; Campbell, unpubl. data)
+- id: camo:phosphorus_competition
+  name: Microbial decomposition and plant/bryophyte uptake competing for added phosphorus
+  entity_type: environmental_process
+  entity_term: competition for added phosphorus (microbial decomposition and plant
+    uptake)
+  measured_attribute: phosphorus sequestration / uptake
+  state_or_change_qualifier: ongoing
+  source_spans:
+  - text: microbial decomposition of peat or uptake by other plants may also be competing
+      for added nutrients (Silvola 1988, Pouliot et al. 2009)
+  - text: colonizing bryophytes might absorb phosphorus, without exhibiting any growth
+      effect.
+- id: camo:surface_drying_crust
+  name: Surface drying and crust formation on bare peat (steep surface moisture gradient)
+  entity_type: environmental_process
+  entity_term: surface peat drying and crust formation
+  measured_attribute: surface moisture / crusting
+  state_or_change_qualifier: present
+  source_spans:
+  - text: These cut hummocks also had some surface crusting within the top few millimeters,
+      so a strong moisture gradient was likely present; moisture conditions at the
+      peat surface may not have been conducive for spores or small vegetative fragments.
+- id: camo:near_surface_ice
+  name: Shallow near-surface ice and low peat temperature
+  entity_type: environmental_variable
+  entity_term: near-surface ground ice
+  measured_attribute: active layer thickness / ice content (ice closer to surface)
+  state_or_change_qualifier: present
+  source_spans:
+  - text: Ice is present closer to the surface over winter road clearances as compared
+      to adjacent undisturbed peatland (43 cm under cut hummocks in August 2008 ...
+      and 115 cm in undisturbed peatland ...). The ice content and low temperature
+      in the peats may limit plant growth, at least for vascular plant species.
+- id: camo:harsh_winter_exposure
+  name: Repeated exposure to harsh winter conditions (bare, raised cut hummocks)
+  entity_type: environmental_process
+  entity_term: winter exposure of bare, raised cut hummocks
+  measured_attribute: exposure to harsh winter conditions
+  state_or_change_qualifier: ongoing
+  source_spans:
+  - text: because of the lack of vegetation on winter roads and the slightly raised
+      microtopography of cut hummocks, they should be repeatedly exposed to harsh
+      winter conditions (Arseneault and Payette 1992). This could be maintaining the
+      ice in cut hummocks
+- id: camo:small_propagule
+  name: Spores or small vegetative propagules (vs large fragments with capitula)
+  entity_type: environmental_variable
+  entity_term: Sphagnum propagule type (spore or small fragment)
+  measured_attribute: propagule size / type
+  state_or_change_qualifier: present
+  source_spans:
+  - text: Sphagnum readily recolonizes in these subarctic peatlands from large fragments
+      with capitula (Corson and Campbell 2013), however spores or small fragments
+      generally have a lower ability to establish (Rochefort 2000, Rochefort et al.
+      2003).
+  applied_to:
+  - entity_term: Q30019
+- id: camo:time_succession
+  name: Time since treatment (succession, 2008–2010)
+  entity_type: environmental_variable
+  entity_term: time since disturbance / treatment
+  measured_attribute: elapsed time (sampling date)
+  state_or_change_qualifier: increased
+  source_spans:
+  - text: Species assemblages did however change over time, with significant differences
+      between May and August 2008 (p = 0.0001) and between August 2008 and August
+      2010 (p = 0.0001, Table 3, Figure 2).
+- id: camo:sphagnum_recolonization_incr
+  name: Increased Sphagnum recolonization
+  entity_type: taxon
+  entity_term: Q30019
+  measured_attribute: PATO:0000070
+  state_or_change_qualifier: increased
+  source_spans:
+  - text: Rock phosphate fertilization and straw mulch did not increase the recolonization
+      of Sphagnum nor of other bryophytes, lichens or vascular plants.
+- id: camo:sphagnum_establishment
+  name: Sphagnum germination and establishment
+  entity_type: environmental_process
+  entity_term: Sphagnum germination and establishment
+  measured_attribute: germination / establishment success
+  state_or_change_qualifier: occurred
+  source_spans:
+  - text: if Sphagnum propagules occur on cut hummocks, they do not establish because
+      of unfavourable conditions in surface peats.
+  applied_to:
+  - entity_term: Q30019
+- id: camo:vegetation_cover_incr
+  name: Increased vegetation cover (overall and by plant group)
+  entity_type: environmental_variable
+  entity_term: plant assemblage (vascular, bryophyte, lichen)
+  measured_attribute: percent cover
+  state_or_change_qualifier: increased
+  source_spans:
+  - text: Straw mulch and fertilizer treatments had no effect on cover, taxon richness
+      or Simpson's diversity, either overall or looking at lichens, bryophytes or
+      vascular plants separately (Table 1).
+- id: camo:taxon_richness_incr
+  name: Increased taxon richness
+  entity_type: environmental_variable
+  entity_term: plant assemblage
+  measured_attribute: taxon richness
+  state_or_change_qualifier: increased
+  source_spans:
+  - text: Straw mulch and fertilizer treatments had no effect on cover, taxon richness
+      or Simpson's diversity
+- id: camo:simpsons_diversity_incr
+  name: Increased Simpson's diversity (1−D)
+  entity_type: environmental_variable
+  entity_term: plant assemblage
+  measured_attribute: Simpson's diversity index (1−D)
+  state_or_change_qualifier: increased
+  source_spans:
+  - text: Straw mulch and fertilizer treatments had no effect on cover, taxon richness
+      or Simpson's diversity
+- id: camo:gravimetric_water_content
+  name: Gravimetric water content of surface peat
+  entity_type: environmental_variable
+  entity_term: surface peat
+  measured_attribute: gravimetric water content
+  state_or_change_qualifier: unchanged
+  source_spans:
+  - text: Mulch cover did not affect gravimetric water content of surface peats on
+      these cut hummocks in August 2008 during a dry spell (F1,25 = 0.2, p = 0.63);
+      water content remained high (89.0 ± 0.5 %).
+- id: camo:active_layer_thickness
+  name: Active layer thickness
+  entity_type: environmental_variable
+  entity_term: peat active layer
+  measured_attribute: active layer thickness
+  state_or_change_qualifier: unchanged
+  source_spans:
+  - text: 'Neither did the mulch affect the thickness of the active layer in August
+      2008 (F1,25 = 0.3, p = 0.57; mean ± SE: 43.1 ± 1.6 cm).'
+- id: camo:species_assemblage
+  name: Species assemblage composition on cut hummocks
+  entity_type: environmental_variable
+  entity_term: plant community (vascular, bryophyte, lichen)
+  measured_attribute: community composition (Bray–Curtis / PERMANOVA)
+  source_spans:
+  - text: The effects of treatments on species assemblages over the three sampling
+      dates were tested using ... permutational multivariate analysis of variance
+      (PERMANOVA procedure)
+- id: camo:assemblage_dispersion
+  name: Among-plot assemblage dispersion (variability)
+  entity_type: environmental_variable
+  entity_term: plant community
+  measured_attribute: multivariate dispersion (PERMDISP)
+  state_or_change_qualifier: decreased
+  source_spans:
+  - text: Assemblages in different treatments were also more dispersed in May 2008
+      ... and decreased by August 2008 and again by August 2010, meaning that species
+      assemblages were becoming less variable with time.
+- id: camo:alternative_stable_state
+  name: Alternative (perhaps stable) state atypical of peatland
+  entity_type: environmental_variable
+  entity_term: sparse community atypical of peatland (bryophyte/lichen colonizers
+    of disturbed peat)
+  measured_attribute: community state
+  state_or_change_qualifier: present
+  source_spans:
+  - text: The overall shift in species assemblages over time towards sparse communities
+      atypical of peatlands and the decreasing dispersion of the assemblage suggests
+      that species assemblages are reaching an alternative and perhaps stable state,
+      away from typical peatland communities.
+- id: camo:peatland_rehabilitation
+  name: Rehabilitation of peatland (recovery to typical peatland community)
+  entity_type: environmental_process
+  entity_term: peatland rehabilitation / recolonization of severely disturbed bare
+    peat
+  measured_attribute: recovery toward typical peatland community
+  state_or_change_qualifier: occurred
+  source_spans:
+  - text: techniques such as phosphorus fertilization and microclimate moderation
+      alone are ineffective to rehabilitate subarctic peatlands with severe surface-disturbances
+- id: camo:sphagnum_abundance_temporal
+  name: Sphagnum abundance (temporal change)
+  entity_type: taxon
+  entity_term: Q30019
+  measured_attribute: PATO:0000070
+  source_spans:
+  - text: Sphagnum abundance did change slightly but significantly over time (F2,50
+      = 3.6, p = 0.035), with a drop from May to August 2008 of 11 to 5% of quadrats,
+      and a rebound by August 2010 to 9% of quadrats.
+- id: camo:plant_growth_vascular
+  name: Plant growth (especially vascular plants)
+  entity_type: environmental_process
+  entity_term: plant growth
+  measured_attribute: growth / establishment
+  state_or_change_qualifier: decreased
+  source_spans:
+  - text: The ice content and low temperature in the peats may limit plant growth,
+      at least for vascular plant species.
+  applied_to:
+  - entity_term: vascular plants
+- id: camo:establishment_ability
+  name: Propagule establishment ability
+  entity_type: environmental_variable
+  entity_term: Sphagnum propagule establishment
+  measured_attribute: ability to establish
+  state_or_change_qualifier: decreased
+  source_spans:
+  - text: spores or small fragments generally have a lower ability to establish (Rochefort
+      2000, Rochefort et al. 2003).
+  applied_to:
+  - entity_term: Q30019
+edges:
+- id: camo:e0_mulchfert_alone_not_sufficient
+  subject: camo:mulch_fert_alone
+  predicate: enables
+  object: camo:peatland_rehabilitation
+  negated: true
+  claim_strength: no_relationship
+  original_sentence: In conclusion, techniques such as phosphorus fertilization and
+    microclimate moderation alone are ineffective to rehabilitate subarctic peatlands
+    with severe surface-disturbances despite the proximity of undisturbed peatland.
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - interventionist
+  - probabilistic
+  - agency
+  sufficiency: explicitly_denied
+  token_or_type: type
+  context_dependence:
+    status: explicitly_asserted
+    scope_conditions:
+    - severely disturbed cut hummocks on winter-road clearances
+    - despite proximity of extensive undisturbed peatland with abundant Sphagnum propagules
+    geographic_scope: Hudson Bay Lowland, Ontario, Canada (subarctic)
+    temporal_scope: 3-year field experiment
+    ecosystem_scope: boreal_temperate_and_montane_peat_bogs
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    evidence_objects:
+    - correlation
+  source_spans:
+  - text: phosphorus fertilization and microclimate moderation alone are ineffective
+      to rehabilitate subarctic peatlands with severe surface-disturbances
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.9
+  annotation_notes: Central thesis of the paper as a sufficiency denial. The experiment
+    deliberately withheld Sphagnum fragment spreading to test whether environmental
+    amelioration alone suffices.
+- id: camo:e1_po4_sphagnum_null
+  subject: camo:po4_fertilization
+  predicate: enables
+  object: camo:sphagnum_recolonization_incr
+  negated: true
+  claim_strength: no_relationship
+  original_sentence: 'Sphagnum abundance also remained low across all plots (mean
+    ± SE: 8 ± 2% of quadrats). Sphagnum was not affected by fertilizer (F2,25 = 0.46,
+    p = 0.64), nor by mulch (F1,25 = 0.19, p = 0.66). The lack of a fertilizer effect
+    was also independent of the mulch treatment (p = 0.94).'
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - interventionist
+  - probabilistic
+  strength:
+    status: explicitly_denied
+    quantitative_value: F2,25 = 0.46, p = 0.64 (repeated-measures; not significant)
+    qualitative_descriptor: negligible
+  moderation:
+    status: explicitly_denied
+    moderator_node_ids:
+    - camo:straw_mulch
+    interaction_type: not_specified
+  sufficiency: explicitly_denied
+  token_or_type: type
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    evidence_objects:
+    - correlation
+  source_spans:
+  - text: Sphagnum was not affected by fertilizer (F2,25 = 0.46, p = 0.64)
+  - text: The lack of a fertilizer effect was also independent of the mulch treatment
+      (p = 0.94).
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.9
+  annotation_notes: Headline null. Moderation (fertilizer × mulch interaction) explicitly
+    denied, p = 0.94.
+- id: camo:e2_mulch_sphagnum_null
+  subject: camo:straw_mulch
+  predicate: enables
+  object: camo:sphagnum_recolonization_incr
+  negated: true
+  claim_strength: no_relationship
+  original_sentence: Sphagnum was not affected by fertilizer (F2,25 = 0.46, p = 0.64),
+    nor by mulch (F1,25 = 0.19, p = 0.66).
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - interventionist
+  - probabilistic
+  strength:
+    status: explicitly_denied
+    quantitative_value: F1,25 = 0.19, p = 0.66 (not significant)
+    qualitative_descriptor: negligible
+  sufficiency: explicitly_denied
+  token_or_type: type
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    evidence_objects:
+    - correlation
+  source_spans:
+  - text: nor by mulch (F1,25 = 0.19, p = 0.66)
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.9
+  annotation_notes: Mulch (microclimate amelioration) did not increase Sphagnum recolonization.
+- id: camo:e3_treatments_cover_null
+  subject: camo:mulch_fert_alone
+  predicate: enables
+  object: camo:vegetation_cover_incr
+  negated: true
+  claim_strength: no_relationship
+  original_sentence: Straw mulch and fertilizer treatments had no effect on cover,
+    taxon richness or Simpson's diversity, either overall or looking at lichens, bryophytes
+    or vascular plants separately (Table 1).
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - interventionist
+  - probabilistic
+  strength:
+    status: explicitly_denied
+    quantitative_value: 'cover: mulch F1,25 = 0.26, p = 0.613; PO4 F2,25 = 1.60, p
+      = 0.221 (Table 1)'
+    qualitative_descriptor: negligible
+  sufficiency: explicitly_denied
+  token_or_type: type
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    evidence_objects:
+    - correlation
+  source_spans:
+  - text: Straw mulch and fertilizer treatments had no effect on cover ... (Table
+      1).
+  - text: Cut hummocks only had 20% cover across all treatments and all plant groups
+      after three years, mostly with bryophytes
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.9
+  annotation_notes: Null for total cover and for vascular/bryophyte/lichen groups
+    separately.
+- id: camo:e4_treatments_richness_null
+  subject: camo:mulch_fert_alone
+  predicate: enables
+  object: camo:taxon_richness_incr
+  negated: true
+  claim_strength: no_relationship
+  original_sentence: Straw mulch and fertilizer treatments had no effect on cover,
+    taxon richness or Simpson's diversity, either overall or looking at lichens, bryophytes
+    or vascular plants separately (Table 1).
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - interventionist
+  - probabilistic
+  strength:
+    status: explicitly_denied
+    quantitative_value: 'taxon richness: mulch F1,25 = 0.70, p = 0.410; PO4 F2,25
+      = 0.74, p = 0.487 (Table 1)'
+    qualitative_descriptor: negligible
+  sufficiency: explicitly_denied
+  token_or_type: type
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    evidence_objects:
+    - correlation
+  source_spans:
+  - text: Straw mulch and fertilizer treatments had no effect on cover, taxon richness
+      or Simpson's diversity
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.9
+  annotation_notes: Block was the only significant term for richness (F = 3.70, p
+    = 0.012), reflecting spatial heterogeneity, not treatment.
+- id: camo:e5_treatments_diversity_null
+  subject: camo:mulch_fert_alone
+  predicate: enables
+  object: camo:simpsons_diversity_incr
+  negated: true
+  claim_strength: no_relationship
+  original_sentence: Straw mulch and fertilizer treatments had no effect on cover,
+    taxon richness or Simpson's diversity, either overall or looking at lichens, bryophytes
+    or vascular plants separately (Table 1).
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - interventionist
+  - probabilistic
+  strength:
+    status: explicitly_denied
+    quantitative_value: 'Simpson''s diversity: mulch F1,25 = 0.44, p = 0.511; PO4
+      F2,25 = 0.00, p = 0.999 (Table 1)'
+    qualitative_descriptor: negligible
+  sufficiency: explicitly_denied
+  token_or_type: type
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    evidence_objects:
+    - correlation
+  source_spans:
+  - text: Straw mulch and fertilizer treatments had no effect on cover, taxon richness
+      or Simpson's diversity
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.9
+  annotation_notes: PO4 effect on diversity was essentially zero (F = 0.00, p = 0.999).
+- id: camo:e6_mulch_water_content_null
+  subject: camo:straw_mulch
+  predicate: associated_with
+  object: camo:gravimetric_water_content
+  negated: true
+  claim_strength: no_relationship
+  original_sentence: Mulch cover did not affect gravimetric water content of surface
+    peats on these cut hummocks in August 2008 during a dry spell (F1,25 = 0.2, p
+    = 0.63); water content remained high (89.0 ± 0.5 %; mean ± SE).
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - interventionist
+  - probabilistic
+  - mechanistic
+  strength:
+    status: explicitly_denied
+    quantitative_value: F1,25 = 0.2, p = 0.63 (not significant); water content ~89%
+    qualitative_descriptor: negligible
+  token_or_type: type
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    evidence_objects:
+    - both
+  source_spans:
+  - text: Mulch cover did not affect gravimetric water content of surface peats ...
+      (F1,25 = 0.2, p = 0.63); water content remained high (89.0 ± 0.5 %).
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.85
+  annotation_notes: 'Mechanism-level null: mulch''s intended pathway (moisture amelioration)
+    did not operate — bulk moisture was already high. Helps explain why mulch had
+    no biotic effect.'
+- id: camo:e7_mulch_active_layer_null
+  subject: camo:straw_mulch
+  predicate: regulates
+  object: camo:active_layer_thickness
+  negated: true
+  claim_strength: no_relationship
+  original_sentence: 'Neither did the mulch affect the thickness of the active layer
+    in August 2008 (F1,25 = 0.3, p = 0.57; mean ± SE: 43.1 ± 1.6 cm).'
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - interventionist
+  - probabilistic
+  strength:
+    status: explicitly_denied
+    quantitative_value: F1,25 = 0.3, p = 0.57 (not significant)
+    qualitative_descriptor: negligible
+  token_or_type: type
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    evidence_objects:
+    - both
+  source_spans:
+  - text: Neither did the mulch affect the thickness of the active layer in August
+      2008 (F1,25 = 0.3, p = 0.57
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.85
+  annotation_notes: Mulch did not alter the thermal/ice regime (active layer), another
+    mechanism-level null.
+- id: camo:e8_po4_assemblage_null
+  subject: camo:po4_fertilization
+  predicate: causes
+  object: camo:species_assemblage
+  negated: true
+  claim_strength: no_relationship
+  original_sentence: Fertilizer did not significantly change the species assemblages
+    on cut hummocks across any dates, as determined from PERMANOVA analyses (Table
+    3).
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - interventionist
+  - probabilistic
+  strength:
+    status: explicitly_denied
+    quantitative_value: PERMANOVA PO4 pseudo-F = 0.9, p = 0.610; PO4 × date p = 0.504
+    qualitative_descriptor: negligible
+  token_or_type: type
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    evidence_objects:
+    - correlation
+  source_spans:
+  - text: Fertilizer did not significantly change the species assemblages on cut hummocks
+      across any dates, as determined from PERMANOVA analyses (Table 3).
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.88
+- id: camo:e9_mulch_assemblage_transient
+  subject: camo:straw_mulch
+  predicate: associated_with
+  object: camo:species_assemblage
+  negated: false
+  claim_strength: associational
+  original_sentence: The addition of a mulch had a borderline effect on species assemblages
+    (p = 0.06), but only in May 2008, when there was more leatherleaf (Chamaedaphne
+    calyculata) and small cranberry (Vaccinium oxycoccos) on the un-mulched plots;
+    this differences disappeared by August 2008 (p = 0.30).
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - interventionist
+  - probabilistic
+  strength:
+    status: explicitly_asserted
+    quantitative_value: borderline p = 0.06 (May 2008 only); mulch overall p = 0.164;
+      mulch × date p = 0.060; gone by Aug 2008 (p = 0.30)
+    qualitative_descriptor: weak
+  stability: explicitly_denied
+  token_or_type: type
+  context_dependence:
+    status: explicitly_asserted
+    temporal_scope: detectable only at May 2008 (first sampling); absent thereafter
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    evidence_objects:
+    - correlation
+  source_spans:
+  - text: The addition of a mulch had a borderline effect on species assemblages (p
+      = 0.06), but only in May 2008 ... this differences disappeared by August 2008
+      (p = 0.30).
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.7
+  annotation_notes: Only marginally-non-null relationship in the study, and it was
+    transient (stability explicitly denied). Likely reflects pre-existing plot differences
+    rather than a mulch effect.
+- id: camo:e10_time_assemblage_shift
+  subject: camo:time_succession
+  predicate: causes
+  object: camo:species_assemblage
+  negated: false
+  claim_strength: direct_causal
+  original_sentence: Species assemblages did however change over time, with significant
+    differences between May and August 2008 (p = 0.0001) and between August 2008 and
+    August 2010 (p = 0.0001, Table 3, Figure 2). This shift was due to increases in
+    bryophytes (Pohlia nutans, small Dicranaceae, Polytrichum strictum, and Dicranum
+    species), lichens (Cladonia and Cladina species) and certain vascular plants.
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - probabilistic
+  - regularity
+  direction:
+    status: asserted
+    evidence_for_direction: temporal_precedence
+  strength:
+    status: explicitly_asserted
+    quantitative_value: PERMANOVA date pseudo-F = 16.5, p = 0.0001
+    qualitative_descriptor: strong
+  temporal_ordering: explicitly_asserted
+  token_or_type: token
+  temporal_extent:
+    duration_months: 27.0
+    duration_text: May 2008 to August 2010
+    observation_seasons:
+    - spring
+    - summer
+  evidential_basis:
+    evidence_types:
+    - observational_longitudinal
+    evidence_objects:
+    - correlation
+  source_spans:
+  - text: Species assemblages did however change over time, with significant differences
+      between May and August 2008 (p = 0.0001) and between August 2008 and August
+      2010 (p = 0.0001
+  - text: This shift was due to increases in bryophytes (Pohlia nutans, small Dicranaceae,
+      Polytrichum strictum, and Dicranum species), lichens (Cladonia and Cladina species)
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.85
+  annotation_notes: The only strong assemblage effect is time (succession), not treatment.
+    Shift is toward disturbed-peat bryophyte/lichen colonizers mostly absent from
+    adjacent peatland — i.e., NOT toward the peatland reference community.
+- id: camo:e11_time_dispersion_decrease
+  subject: camo:time_succession
+  predicate: contributes_to
+  object: camo:assemblage_dispersion
+  negated: false
+  claim_strength: uncertain_causal
+  original_sentence: Assemblages in different treatments were also more dispersed
+    in May 2008 (p < 0.04, 9999 permutations), and decreased by August 2008 and again
+    by August 2010, meaning that species assemblages were becoming less variable with
+    time.
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - probabilistic
+  direction:
+    status: asserted
+    evidence_for_direction: temporal_precedence
+  temporal_ordering: explicitly_asserted
+  token_or_type: token
+  evidential_basis:
+    evidence_types:
+    - observational_longitudinal
+    evidence_objects:
+    - correlation
+  source_spans:
+  - text: decreased by August 2008 and again by August 2010, meaning that species
+      assemblages were becoming less variable with time.
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.8
+  annotation_notes: Decreasing multivariate dispersion (PERMDISP) = convergence; feeds
+    the alternative-stable-state interpretation (e13).
+- id: camo:e12_time_sphagnum_change
+  subject: camo:time_succession
+  predicate: causes
+  object: camo:sphagnum_abundance_temporal
+  negated: false
+  claim_strength: uncertain_causal
+  original_sentence: However, Sphagnum abundance did change slightly but significantly
+    over time (F2,50 = 3.6, p = 0.035), with a drop from May to August 2008 of 11
+    to 5% of quadrats, and a rebound by August 2010 to 9% of quadrats.
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - probabilistic
+  strength:
+    status: explicitly_asserted
+    quantitative_value: 'F2,50 = 3.6, p = 0.035 (small: 11% → 5% → 9% of quadrats)'
+    qualitative_descriptor: weak
+  temporal_ordering: explicitly_asserted
+  token_or_type: token
+  evidential_basis:
+    evidence_types:
+    - observational_longitudinal
+    evidence_objects:
+    - correlation
+  source_spans:
+  - text: Sphagnum abundance did change slightly but significantly over time (F2,50
+      = 3.6, p = 0.035)
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.8
+  annotation_notes: Significant but small and non-directional over the study (drop
+    then partial rebound); Sphagnum stayed near-absent throughout.
+- id: camo:e13_shift_alternative_state
+  subject: camo:species_assemblage
+  predicate: contributes_to
+  object: camo:alternative_stable_state
+  negated: false
+  claim_strength: uncertain_causal
+  original_sentence: The overall shift in species assemblages over time towards sparse
+    communities atypical of peatlands and the decreasing dispersion of the assemblage
+    suggests that species assemblages are reaching an alternative and perhaps stable
+    state, away from typical peatland communities.
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - probabilistic
+  - mechanistic
+  reversibility: hysteresis
+  token_or_type: token
+  context_dependence:
+    status: explicitly_asserted
+    scope_conditions:
+    - colonizing bryophyte taxa mostly absent from adjacent undisturbed peatland;
+      dominance reflects a shift away from conditions conducive for Sphagnum recolonization
+  evidential_basis:
+    evidence_types:
+    - observational_longitudinal
+    evidence_objects:
+    - correlation
+  source_spans:
+  - text: suggests that species assemblages are reaching an alternative and perhaps
+      stable state, away from typical peatland communities.
+  - text: their dominance reflects a shift away from conditions conducive for Sphagnum
+      recolonization. A similar condition appears to be occurring here.
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.7
+  annotation_notes: 'Alternative-stable-state / hysteresis interpretation (hedged
+    ''suggests'', ''perhaps''). Key restoration implication: passive amelioration
+    lets the system settle into a non-target state.'
+- id: camo:e14_lowP_prevents_establishment
+  subject: camo:low_surface_phosphorus
+  predicate: prevents
+  object: camo:sphagnum_establishment
+  negated: false
+  claim_strength: uncertain_causal
+  original_sentence: Sphagnum requires phosphorus to germinate and establish, but
+    phosphorus is in extremely low concentrations in peatlands (Sundberg and Rydin
+    2002).
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - mechanistic
+  - counterfactual
+  necessity: implicitly_assumed
+  direction:
+    status: asserted
+    evidence_for_direction: theoretical
+  token_or_type: type
+  evidential_basis:
+    evidence_types:
+    - theoretical
+    - mechanistic_study
+    evidence_objects:
+    - mechanism
+  source_spans:
+  - text: Sphagnum requires phosphorus to germinate and establish, but phosphorus
+      is in extremely low concentrations in peatlands
+  - text: It is possible that nutrient levels in surface peats were insufficient to
+      support plant colonization, even with higher rock phosphate fertilization.
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.72
+  annotation_notes: 'Mechanistic hypothesis for the fertilizer null: even added phosphate
+    did not raise bioavailable P enough (see e15). Draws on cited literature (Sundberg
+    & Rydin 2002).'
+- id: camo:e15_competition_keeps_P_low
+  subject: camo:phosphorus_competition
+  predicate: contributes_to
+  object: camo:low_surface_phosphorus
+  negated: false
+  claim_strength: uncertain_causal
+  original_sentence: microbial decomposition of peat or uptake by other plants may
+    also be competing for added nutrients (Silvola 1988, Pouliot et al. 2009), so
+    colonizing bryophytes might absorb phosphorus, without exhibiting any growth effect.
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - mechanistic
+  direction:
+    status: asserted
+    evidence_for_direction: theoretical
+  token_or_type: type
+  evidential_basis:
+    evidence_types:
+    - theoretical
+    evidence_objects:
+    - mechanism
+  source_spans:
+  - text: microbial decomposition of peat or uptake by other plants may also be competing
+      for added nutrients
+  - text: colonizing bryophytes might absorb phosphorus, without exhibiting any growth
+      effect.
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.65
+  annotation_notes: Proposed sink for added phosphate (microbes, non-target bryophytes)
+    — explains why fertilization failed to relieve the P constraint. Highly hedged
+    ('may', 'might').
+- id: camo:e16_surface_drought_prevents_establishment
+  subject: camo:surface_drying_crust
+  predicate: prevents
+  object: camo:sphagnum_establishment
+  negated: false
+  claim_strength: uncertain_causal
+  original_sentence: These cut hummocks also had some surface crusting within the
+    top few millimeters, so a strong moisture gradient was likely present; moisture
+    conditions at the peat surface may not have been conducive for spores or small
+    vegetative fragments.
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - mechanistic
+  direction:
+    status: asserted
+    evidence_for_direction: theoretical
+  token_or_type: type
+  context_dependence:
+    status: explicitly_asserted
+    scope_conditions:
+    - surface (top few mm) despite high bulk moisture (~89%); especially affects spores
+      and small vegetative fragments
+  evidential_basis:
+    evidence_types:
+    - mechanistic_study
+    - theoretical
+    evidence_objects:
+    - mechanism
+  source_spans:
+  - text: moisture conditions at the peat surface may not have been conducive for
+      spores or small vegetative fragments.
+  - text: Large Sphagnum fragments are quite sensitive to drought conditions (Price
+      et al. 1998), so spores or small fragments may be more so.
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.7
+  annotation_notes: 'Note the apparent paradox: bulk peat moisture was high (~89%)
+    and unaffected by mulch (e6), yet a steep surface-moisture gradient/crust could
+    still stress surface propagules.'
+- id: camo:e17_ice_limits_growth
+  subject: camo:near_surface_ice
+  predicate: disrupts
+  object: camo:plant_growth_vascular
+  negated: false
+  claim_strength: uncertain_causal
+  original_sentence: The ice content and low temperature in the peats may limit plant
+    growth, at least for vascular plant species.
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - mechanistic
+  direction:
+    status: asserted
+    evidence_for_direction: theoretical
+  token_or_type: type
+  context_dependence:
+    status: explicitly_asserted
+    scope_conditions:
+    - especially vascular plants; ice at ~43 cm under cut hummocks vs ~115 cm in undisturbed
+      peatland
+  evidential_basis:
+    evidence_types:
+    - observational_cross_sectional
+    - theoretical
+    evidence_objects:
+    - mechanism
+  source_spans:
+  - text: The ice content and low temperature in the peats may limit plant growth,
+      at least for vascular plant species.
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.68
+- id: camo:e18_exposure_maintains_ice
+  subject: camo:harsh_winter_exposure
+  predicate: contributes_to
+  object: camo:near_surface_ice
+  negated: false
+  claim_strength: uncertain_causal
+  original_sentence: because of the lack of vegetation on winter roads and the slightly
+    raised microtopography of cut hummocks, they should be repeatedly exposed to harsh
+    winter conditions (Arseneault and Payette 1992). This could be maintaining the
+    ice in cut hummocks and could affect the successful establishment of any plant
+    species.
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - mechanistic
+  direction:
+    status: asserted
+    evidence_for_direction: theoretical
+  mediation:
+    status: implicitly_assumed
+    mediator_node_ids:
+    - camo:near_surface_ice
+    pathway_description: Bare, raised cut hummocks are repeatedly exposed to harsh
+      winter conditions, maintaining near-surface ice, which in turn limits establishment
+      of any plant species.
+  token_or_type: type
+  evidential_basis:
+    evidence_types:
+    - theoretical
+    evidence_objects:
+    - mechanism
+  source_spans:
+  - text: This could be maintaining the ice in cut hummocks and could affect the successful
+      establishment of any plant species.
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.65
+  annotation_notes: A self-reinforcing feedback (bare → cold exposure → ice → poor
+    establishment → stays bare) consistent with the alternative-stable-state reading
+    in e13.
+- id: camo:e19_small_propagule_low_establishment
+  subject: camo:small_propagule
+  predicate: contributes_to
+  object: camo:establishment_ability
+  negated: false
+  claim_strength: uncertain_causal
+  original_sentence: Sphagnum readily recolonizes in these subarctic peatlands from
+    large fragments with capitula (Corson and Campbell 2013), however spores or small
+    fragments generally have a lower ability to establish (Rochefort 2000, Rochefort
+    et al. 2003).
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - mechanistic
+  - probabilistic
+  direction:
+    status: asserted
+    evidence_for_direction: theoretical
+  strength:
+    status: implicitly_assumed
+    qualitative_descriptor: moderate
+    dose_response: true
+  token_or_type: type
+  evidential_basis:
+    evidence_types:
+    - theoretical
+    - mechanistic_study
+    evidence_objects:
+    - mechanism
+  source_spans:
+  - text: spores or small fragments generally have a lower ability to establish (Rochefort
+      2000, Rochefort et al. 2003).
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.72
+  annotation_notes: Propagule-size → establishment ability contrast; the causal basis
+    for why fragment spreading (large fragments with capitula) is needed. Draws on
+    cited literature.
+- id: camo:e20_fragment_spreading_necessary
+  subject: camo:fragment_spreading
+  predicate: enables
+  object: camo:peatland_rehabilitation
+  negated: false
+  claim_strength: uncertain_causal
+  original_sentence: The spreading of fragments on top of severely disturbed surface
+    peats appears to be required in order to rehabilitate peatlands, even when extensive
+    undisturbed peatlands are found nearby.
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - agency
+  - counterfactual
+  - mechanistic
+  necessity: explicitly_asserted
+  direction:
+    status: asserted
+    evidence_for_direction: theoretical
+  token_or_type: type
+  context_dependence:
+    status: explicitly_asserted
+    scope_conditions:
+    - severely surface-disturbed peat (cut hummocks); holds even with abundant nearby
+      propagule sources
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    - practitioner_experience
+    evidence_objects:
+    - both
+  source_spans:
+  - text: The spreading of fragments on top of severely disturbed surface peats appears
+      to be required in order to rehabilitate peatlands, even when extensive undisturbed
+      peatlands are found nearby.
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.85
+  annotation_notes: The paper's actionable conclusion (agency account). Necessity
+    asserted; strength hedged ('appears to be required'). Inferred jointly from this
+    null experiment and the authors' prior positive result (e21).
+- id: camo:e21_large_fragments_successful_reveg
+  subject: camo:large_fragment_spreading
+  predicate: enables
+  object: camo:peatland_rehabilitation
+  negated: false
+  claim_strength: direct_causal
+  original_sentence: We have already demonstrated that other severely disturbed peat
+    surfaces in the HBL can be successfully revegetated if Sphagnum fragments are
+    spread, with light fertilization but no mulch (Corson and Campbell 2013).
+  ecosystem_context: boreal_temperate_and_montane_peat_bogs
+  philosophical_accounts:
+  - interventionist
+  - agency
+  direction:
+    status: asserted
+    evidence_for_direction: experimental
+  token_or_type: type
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    evidence_objects:
+    - correlation
+  source_spans:
+  - text: other severely disturbed peat surfaces in the HBL can be successfully revegetated
+      if Sphagnum fragments are spread, with light fertilization but no mulch (Corson
+      and Campbell 2013).
+  source_document: 10.3368/er.32.2.153
+  annotator: camo_agent:claude-opus-4-8
+  annotation_confidence: 0.75
+  annotation_notes: 'PROVENANCE: this positive result is from the authors'' PRIOR
+    study (Corson & Campbell 2013), cited here as contrast — NOT a finding of the
+    present experiment. Flag for cross-study aggregation; ideally annotate against
+    the 2013 source directly.'
+source_documents:
+- doi: 10.3368/er.32.2.153
+  title: Can Mulch and Fertilizer Alone Rehabilitate Surface-disturbed Subarctic Peatlands?
+  authors:
+  - Campbell, Daniel
+  - Corson, Angie
+  year: 2014
+  journal: Ecological Restoration
+  study_coordinates:
+  - latitude: 52.8367
+    longitude: -83.89
+    elevation_m: 82.0
+  study_country: Canada
+  study_state_or_province: Ontario
+  study_period_start: 2008-05
+  study_period_end: 2010-08
+  study_duration_months: 27.0
+  study_temporal_note: Winter road constructed and used one winter (2005–2006); factorial
+    treatments applied May 2008; vegetation sampled May 2008, August 2008, and August
+    2010 (three-year field experiment).
+  study_design: randomized_experiment
+  document_id: 10.3368/er.32.2.153
+  sampling_effort_protocol: 36 plots (6 randomized complete blocks × 3 phosphate levels
+    [none/low/high] × 2 mulch levels [without/with]); 2×2 m plots; ten 12.5×12.5 cm
+    quadrats per plot
+  is_sampling_effort_reported: true
+  sample_size_value: 36.0
+  sample_size_unit: plots

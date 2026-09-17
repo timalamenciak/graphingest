@@ -1,0 +1,218 @@
+# =============================================================================
+# The single parameter file for the ingest pipeline.
+#
+# Every stage reads its inference settings from here via
+# graphingest.llm_client, which is the only module that knows about providers.
+# Repoint this file to move the whole pipeline to a different machine (a GPU
+# workstation, a cluster, or a hosted API) without touching any code.
+#
+# Default is an OpenAI-compatible LiteLLM endpoint (BRINE_BASE_URL /
+# BRINE_API_KEY). A Claude (Anthropic) block is included below, commented
+# out: uncomment it and comment out the openai_compatible settings above to
+# move the whole pipeline to the Anthropic API.
+# =============================================================================
+
+llm:
+  # ollama | openai_compatible | anthropic
+  provider: openai_compatible
+
+  # OpenAI-compatible base URL. For Ollama this is <host>/v1.
+  endpoint: "${BRINE_BASE_URL}"
+
+  model: "${LLM_MODEL:-openai/models/Qwen3.8-27B}"
+
+  # Read from the environment; ollama ignores it. Never hardcode a real key here.
+  api_key: "${BRINE_API_KEY:-}"
+
+  temperature: 0.1
+
+  # Maximum tokens the model may GENERATE (not its context size). Two failures
+  # pull in opposite directions here:
+  #
+  #   Too high, and a weaker model that loses the thread rambles to the limit,
+  #   turning a 40-second call into a 20-minute one.
+  #
+  #   Too low, and a *reasoning* model (qwen3.x and friends) spends the whole
+  #   budget thinking and returns empty content. The client detects exactly
+  #   that and says so, rather than reporting an opaque empty response.
+  #
+  # 16384 is room for a long article's worth of graph plus a reasoning
+  # preamble. Drop it to 8192 for a non-reasoning model.
+  max_tokens: 16384
+  timeout: 600
+
+  # How structured output is enforced:
+  #   json_object  - server guarantees valid JSON; shape comes from the prompt
+  #   json_schema  - server-side grammar from a JSON Schema (OpenAI; many Ollama
+  #                  builds return a 500 on schemas this size)
+  #   tool_use     - single forced tool call (Anthropic, OpenAI)
+  #   prompt_only  - no server constraint at all; parse and repair the reply
+  #
+  # json_object is the default because it is what Ollama actually honours.
+  # Correctness does not depend on it: output is normalized against the schema
+  # and then validated, whichever mode produced it. If a mode is refused, the
+  # client degrades automatically rather than failing.
+  structured_output: json_object
+
+  # Retries for malformed/unparseable structured output.
+  max_repair_attempts: 2
+
+  # ---------------------------------------------------------------------------
+  # Claude (Anthropic) — commented out. To use it:
+  #
+  #   1. pip install -e ".[anthropic]"
+  #   2. export LLM_API_KEY=sk-ant-...        (the client refuses to start without it)
+  #   3. comment out provider/endpoint/model/structured_output above,
+  #      and uncomment the block below.
+  #
+  # provider: anthropic
+  #model: "${LLM_MODEL:-claude-sonnet-5}"
+  #api_key: "${ANTHROPIC_API_KEY:-}"
+  #structured_output: tool_use
+  #max_tokens: 32000
+  #timeout: 600
+  #endpoint: ""              # unused: the SDK knows where the API lives
+  #temperature: 0.1          # read but not sent; see below
+  #
+  # Five things that differ from the Ollama path:
+  #
+  # `endpoint` is ignored. The Anthropic SDK has its own base URL, so the
+  # value above is there only to keep the block shaped like the other one.
+  #
+  # `temperature` is not sent. Claude 4.6 and later removed the sampling
+  # parameters outright — sending temperature to claude-opus-5 is a 400, not a
+  # warning. The client drops it on the first refusal and remembers, so the
+  # setting is harmless whichever model you point at.
+  #
+  # `structured_output: tool_use` is the mode to use. It forces a single tool
+  # call whose input_schema is the pruned extraction schema, which is the
+  # closest thing to a grammar the Messages API offers. `json_object` and
+  # `json_schema` fall back to the same forced tool call.
+  #
+  # `max_tokens` is larger here than for Ollama because thinking shares the
+  # budget: on claude-opus-5 extended thinking is on by default and its tokens
+  # count against this number. 32000 leaves room for a long article's graph
+  # after the model has thought about it. Do not go far above this — the
+  # client does not stream, and a very large budget on a non-streaming request
+  # risks an HTTP timeout rather than a better answer.
+  #
+  # Model choice, with list prices per million tokens (input/output):
+  #   claude-opus-5     $5 / $25    the default, and what to use unless you
+  #                                 have a reason; 1M context
+  #   claude-sonnet-5   $2 / $10    cheaper, still strong; worth measuring
+  #                                 against opus on your own gold standard
+  #   claude-haiku-4-5  $1 / $5     fast and cheap, 200K context; too weak for
+  #                                 whole-article extraction in our experience
+  #
+  # Not claude-fable-5-1: forced tool use returns a 400 on that model, and
+  # forced tool use is how this client constrains output.
+  # ---------------------------------------------------------------------------
+
+# Marker's LLM assist during PDF conversion can point at a different, cheaper
+# model on the same host. Set enabled: false to run Marker without it.
+marker_llm:
+  enabled: true
+  endpoint: null      # null = inherit llm.endpoint
+  model: null         # null = inherit llm.model
+
+# =============================================================================
+# PDF conversion (graphingest.convert, and stage 2 of graphingest.run).
+#
+# Picks the converter when --converter is not passed on the command line.
+# Precedence: --converter flag > default_converter below > "marker" built in.
+#
+#   marker    layout-aware, reconstructs tables and reading order, optional
+#             LLM assist above. The right choice for a real corpus -- and
+#             slow: minutes per PDF with no CUDA GPU, since it runs several
+#             vision models per page. Needs `pip install -e ".[marker]"`.
+#   pymupdf   the PDF's raw text layer, one markdown section per page. No
+#             models, converts a paper in well under a second. Poor on
+#             multi-column layouts and tables. Good enough to get a real
+#             graph out the other end while iterating on everything *except*
+#             conversion quality, or on a clean born-digital PDF.
+#
+# Switch this back to marker before a run whose output quality matters.
+# =============================================================================
+
+convert:
+  default_converter: pymupdf   # marker | pymupdf   -- set to pymupdf for speed while iterating
+
+# =============================================================================
+# Ontology grounding.
+#
+# The model is asked for plain-language terms and never for identifiers; these
+# routes decide where each kind of term is then looked up, in Python. A lookup
+# that finds nothing leaves the term as the authors wrote it and records a
+# miss, which is the behaviour an invented CURIE cannot give you.
+#
+# A route is one backend, or a LIST of backends tried in order until one
+# clears min_score. The order is a statement of preference: ELMO, the project's
+# own ontology, is consulted before the published ones, which is the point of
+# having a project ontology.
+#
+#   local:<name>    an ontology file declared under `ontologies:` below. Fetched
+#                   once, indexed by label and synonym, and searched in memory.
+#                   The only way to ground against an ontology no lookup
+#                   service hosts, and the only one that works offline.
+#   ols:envo,go     EBI Ontology Lookup Service, restricted to those ontologies
+#   wikidata        Wikidata, filtered to items that really are taxa
+#   oaklib:<spec>   Ontology Access Kit, e.g. "oaklib:sqlite:obo:envo". Needs
+#                   `oaklib` installed.
+#   none            no lookup for this entity type
+#
+# The public services are rate-limit-friendly rather than fast: every lookup is
+# cached to disk by term, so a corpus costs one request per distinct term and a
+# re-run costs none.
+# =============================================================================
+
+grounding:
+  enabled: true
+
+  # Reject a candidate whose label agrees with the query less than this, by
+  # token overlap. Lower catches more and grounds more loosely; the cost of a
+  # wrong term is higher than the cost of free text, so this errs high.
+  min_score: 0.6
+
+  timeout: 20
+  pause_seconds: 0.1
+
+  # Ontology files loaded directly, by the name a "local:<name>" route uses.
+  # `prefix` is the CURIE prefix minted for terms this ontology does not share
+  # with the schema's own prefix map; ELMO IRIs are covered by that map, so its
+  # terms come back as elmo:3622713 — the same CURIEs CAMO's enums use.
+  #
+  # `source` may be a URL or a local path. Pin a release tag rather than a
+  # branch when a run needs to be reproducible: `refs/heads/main` moves.
+  ontologies:
+    elmo:
+      source: "https://raw.githubusercontent.com/timalamenciak/elmo/refs/heads/main/elmo.owl"
+      prefix: elmo
+
+  # Where fetched ontologies and their term indexes live. Derived artefacts:
+  # delete the directory and the next run rebuilds it.
+  ontology_dir: null       # null = <project>/ontologies
+
+  routes:
+    # CAMO's AppliedToEntity asks for Wikidata QIDs for taxa, and its gold
+    # annotations use them. ELMO holds no taxa, so it is not in this route.
+    taxon: wikidata
+    environmental_variable:
+      - "local:elmo"
+      - "ols:envo,pato,chebi"
+    environmental_process:
+      - "local:elmo"
+      - "ols:envo,go"
+    management_intervention:
+      # ELMO's conservation-action branch is exactly this, and nothing public
+      # covers it; without ELMO these terms mostly go unresolved.
+      - "local:elmo"
+      - "ols:envo,go"
+    default:
+      - "local:elmo"
+      - "ols:envo,go,chebi,pato"
+
+  # Slots to ground. measured_attribute is deliberately absent: hand annotation
+  # keeps it as measured prose ("bioavailable phosphorus < 0.03 mg/kg"), which
+  # no ontology term carries. Add it here if you want PATO attributes instead.
+  slots:
+    - entity_term

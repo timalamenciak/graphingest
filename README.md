@@ -1,0 +1,625 @@
+# graphingest
+
+Point it at a folder of PDFs with an RIS export and get back a Causal Mosaic
+graph, merged into the one you already have.
+
+```bash
+python -m graphingest.run "/path/to/mosquito_corpus" \
+    --out-dir build \
+    --into ~/mosaic/causal_graph.yaml \
+    --example examples/murphy_2005_camo_annotation_revised.yaml \
+    --domain "restoration ecology"
+```
+
+Four stages, each resumable and each usable on its own:
+
+```
+graphingest.ris       PDFs + RIS      ->  corpus manifest
+graphingest.convert   manifest        ->  markdown articles
+graphingest.annotate  markdown        ->  one graph per document, terms grounded
+                                          and nodes matched to the existing graph
+graphingest.merge     document graphs ->  one graph, merged into an existing one
+```
+
+Two resolution steps run inside `annotate`, and they are the difference between
+an ingest and a pile of parallel graphs. **Grounding** resolves each term to an
+ontology — ELMO first, then the public ones. **Reconciliation** resolves each
+*node* against the graph you are adding to, so a node the corpus already has is
+that node rather than a near-duplicate of it. Both happen in Python, both are
+fully reported, and both can be switched off.
+
+Nothing here hardcodes a schema or an inference provider. The LinkML file
+passed as `--schema` drives the prompt, the output constraint, the normalizer
+and the validator together; `config/pipeline.yaml` decides where inference runs
+and how terms are grounded.
+
+## Setup
+
+```bash
+pip install -e .
+pip install -e ".[marker,dev]"     # layout-aware PDF conversion, tests
+```
+
+Install it editable: the schema, the config and the worked examples live beside
+the package rather than inside it, and the default paths point at this
+directory.
+
+## Where inference runs
+
+`config/pipeline.yaml` is the single point of control, read through
+`graphingest.llm_client` — the only module that knows about providers. Repoint
+that file to move the whole pipeline to another machine, or to another
+provider: a **Claude (Anthropic)** block ships commented out beside the Ollama
+one, so switching is an edit to that file and `pip install -e ".[anthropic]"`,
+with `LLM_API_KEY` in the environment. Nothing else in the pipeline changes.
+
+```yaml
+llm:
+  provider: ollama          # ollama | openai_compatible | anthropic
+  endpoint: "${LLM_ENDPOINT:-http://localhost:11434/v1}"
+  model: "${LLM_MODEL:-qwen3.6:35b}"
+  max_tokens: 16384         # GENERATION budget, not context size
+  structured_output: json_object
+```
+
+Three things worth knowing, all learned the hard way and all encoded as
+defaults:
+
+- **`max_tokens` is an output budget, and a reasoning model will spend it
+  thinking.** Set too low, qwen3.x emits 36,000 characters of reasoning, hits
+  the limit and returns empty content. The client detects exactly that and says
+  so, instead of reporting an opaque empty response. Set too high, a weaker
+  model that loses the thread rambles to the limit and a 40-second call becomes
+  a 20-minute one.
+- **`json_object`, not `json_schema`.** The full CAMO JSON Schema is ~65 KB
+  across 44 definitions and Ollama returns a 500 rather than compile a grammar
+  that big. Extraction sends a pruned schema and asks only for valid JSON; the
+  shape comes from the prompt, and correctness comes from normalizing and
+  validating the result afterwards. If a mode is refused the client degrades
+  automatically rather than failing.
+- **Ollama's context window is set per model, not per request.** A whole
+  article plus the schema plus a one-shot example runs to ~25k tokens, so point
+  at a model built with the context to hold it, or pass
+  `--max-chunk-characters` to send the article in pieces.
+
+On the Claude path three things differ, and the commented block in
+`config/pipeline.yaml` spells out why: `endpoint` is ignored (the SDK knows
+where the API is), `temperature` is not sent (Claude 4.6 and later removed the
+sampling parameters — sending one is a 400, so the client drops it on refusal
+and remembers), and `max_tokens` wants to be larger because extended thinking
+is on by default on `claude-opus-5` and its tokens come out of the same budget.
+Use `structured_output: tool_use` there: it forces a single tool call whose
+`input_schema` is the pruned extraction schema, which is the closest thing to a
+grammar the Messages API offers.
+
+## Ontology grounding happens in Python
+
+The model is **never** asked for an ontology identifier. Asked for one it will
+produce something shaped exactly like a real CURIE — `ENVO:00002006`, `Q56987`
+— that denotes the wrong thing, or nothing at all, and nothing about the string
+tells you which. So the prompt asks for plain language and
+`graphingest.ground` looks the terms up afterwards:
+
+```
+"Aedes dorsalis"          -> Q13543883       Aedes dorsalis           (wikidata)
+"ditch plugging"          -> elmo:3620072    ditch plugging process   (elmo)
+"prescribed burning"      -> elmo:3621037    prescribed fire process  (elmo, via synonym)
+"grubbing"                -> elmo:3620022    grubbing process         (elmo, suffix ignored)
+"water table depth"       -> ENVO:06105203   water table depth        (envo, imported into elmo)
+"salt marsh"              -> ENVO:00000054   saline marsh             (envo, via synonym)
+"soil salinity"           -> PATO:0085001    salinity                 (backoff to the head noun)
+"phosphorus"              -> CHEBI:28659     phosphorus atom          (curated override)
+"tidal flushing"          -> unresolved, left as the authors wrote it
+"Parker"                  -> unresolved (a search hit that is not a taxon is rejected)
+```
+
+The difference that matters is not accuracy but **failure behaviour**. A lookup
+that finds nothing records a miss and leaves the term alone; a hallucinated
+identifier is indistinguishable from a correct one until somebody dereferences
+it. Every decision — match, miss, override, backoff — lands in
+`grounding_report.json` and in each document's `<slug>.report.json`.
+
+Routing is by entity type, and a route is an ordered *list*, in
+`config/pipeline.yaml`:
+
+```yaml
+grounding:
+  min_score: 0.6
+  ontologies:
+    elmo:
+      source: "https://raw.githubusercontent.com/timalamenciak/elmo/refs/heads/main/elmo.owl"
+      prefix: elmo
+  routes:
+    taxon: wikidata                        # filtered to items that really are taxa
+    environmental_variable: ["local:elmo", "ols:envo,pato,chebi"]
+    environmental_process:  ["local:elmo", "ols:envo,go"]
+    management_intervention: ["local:elmo", "ols:envo,go"]
+    default: ["local:elmo", "ols:envo,go,chebi,pato"]
+```
+
+Backends: `local:<name>` for an ontology file (URL or path), `ols` (EBI Ontology
+Lookup Service), `wikidata`, `oaklib:<spec>`, and `none`. `--no-ground` skips
+lookup entirely. Every lookup is cached to `grounding_cache.json` by term, so a
+corpus that mentions *Aedes dorsalis* in nine papers costs one request and a
+re-run costs none.
+
+### ELMO, and other ontologies nobody hosts
+
+`local:` loads an ontology file directly, which is the only way to ground
+against one no lookup service carries — and the only way to ground at all with
+no outbound network. ELMO is configured this way by default: fetched once into
+`ontologies/`, reduced to a term index of CURIEs, labels and synonyms, and
+searched in memory. The index is rebuilt when the source file changes or the
+prefix map does, and `--refresh-ontologies` forces it.
+
+It earns its place in the route. Of the management terms this corpus uses,
+ELMO resolves *ditch plugging*, *canopy thinning*, *grubbing* and *prescribed
+burning*; the public ontologies resolve none of them. Four details matter:
+
+- **CURIEs come from the schema's own prefix map.** An ELMO IRI becomes
+  `elmo:3622713` — the CURIE CAMO's enums already use — rather than one this
+  code invented, which would agree with nothing downstream.
+- **An imported term keeps its own identity.** ELMO imports ENVO, GO and PATO
+  terms; reached through ELMO, `ENVO:06105203` is still ENVO, and the report
+  says so.
+- **A classifier suffix does not block a match.** ELMO ends 232 of its 652
+  class labels with "process", so "grubbing" is matched against both "grubbing
+  process" and "grubbing". The suffix is the ontology saying what kind of thing
+  a term is, not part of what the authors called it.
+- **People are not vocabulary.** An ontology credits its authors with ORCIDs,
+  and those are excluded from the index. "Tim Alamenciak" is not a thing a
+  causal claim is about.
+
+Five things the routing deliberately does:
+
+- **Preference decides ties, not contests.** ELMO comes first, but the best
+  match across the route wins. ELMO offers "Inland Salt Marsh" for *salt marsh*
+  at 0.67 and ENVO offers "saline marsh" at 0.98; taking the first would ground
+  a coastal corpus to an inland ecosystem. An *exact* match in an earlier
+  backend does short-circuit, so a term ELMO names outright never costs a
+  request to a public service.
+
+- **Taxon hits are verified, not trusted.** A Wikidata search for "Parker"
+  returns a surname; only items carrying `taxon name` or `instance of: taxon`
+  are accepted.
+- **Ties break on the ontology order in the route.** For ecology an ENVO term
+  is a better answer than an equally-scoring CHEBI one.
+- **A phrase that resolves to nothing is retried on its tail**, where English
+  puts the head noun, held to a higher score because it discards part of what
+  the authors wrote. Every such match is recorded as `via: backoff:<query>`.
+- **Decided cases live in `config/grounding_overrides.yaml`.** CHEBI's best
+  lexical match for "phosphorus" is `tetraphosphorus`, the P4 allotrope, which
+  carries "phosphorus" as an exact synonym — a different claim about the world
+  that no similarity threshold can separate from the right one. Only a person
+  can, so those decisions are written down with their reasoning.
+
+Grounding runs **before** merging, per document. That is what lets the merge
+recognise that "Aedes dorsalis" in one paper and "Ae. dorsalis" in another are
+the same node.
+
+## Extraction resolves against the graph it is joining
+
+Grounding resolves a term. Reconciliation resolves a *node*: "increased larval
+abundance of *Aedes dorsalis*" extracted from a new paper is the node three
+earlier papers already talk about, and it should be that node, not a fourth
+copy. Pass `--into` (or `--against` on `graphingest.annotate`) and every
+extracted node is matched against the existing graph before the document graph
+is written, adopting the existing node's id and identity where the two are the
+same thing. The merge then joins them for free, and the corpus accumulates
+evidence on one node instead of growing near-duplicates.
+
+Merging by exact identity — what the merge stage does on its own — is too
+strict, because annotators qualify the same measurement to different depths:
+"larval abundance" and "mosquito larval abundance" share two tokens of three.
+So containment counts too, discounted. What does *not* count is morphology:
+"larval abundance" and "abundance of larvae" stay two nodes, the report says
+one went unmatched, and a person decides. Guessing at suffixes is not worth a
+wrongly merged node.
+
+**What is never merged**, whatever the wording:
+
+- **Different `state_or_change_qualifier`.** "Increased salinity" and
+  "decreased salinity" are opposite claims. The polarity lives on the node, so
+  folding these together would invert half the evidence in the graph.
+- **Different `entity_type`.** A taxon and an environmental variable are not
+  the same node because they share a name.
+- **Two different grounded terms.** A CURIE is an assertion, and two of them
+  assert two different things.
+
+`--reconcile-min-score` moves the bar (0.7 by default, deliberately higher than
+the grounding threshold: grounding a term loosely costs one wrong CURIE,
+merging two nodes wrongly costs every edge on both). `--no-reconcile` turns the
+step off. Either way every match is recorded in the document's report with the
+rule and score that produced it, so one you disagree with can be found:
+
+```bash
+python -m graphingest.reconcile build/graphs --against ~/mosaic/causal_graph.yaml --report-only
+```
+
+## The one-shot example
+
+`--example` is the single most effective lever on output quality. It shows the
+model the house conventions — node granularity, how much of a sentence to
+quote, when to use which qualifier — that no amount of schema prose conveys.
+
+It is also the one place where the "no identifiers" rule can leak. A hand
+annotation has already been through grounding, so it contains `entity_term:
+Q30019`, and a one-shot is imitated rather than read. Those identifiers are
+therefore turned back into the labels they denote before the example goes into
+the prompt. `--example-max-nodes` trims a large example to fit, keeping only
+the edges whose endpoints survive, because a broken example teaches broken
+output.
+
+## Every step
+
+UML activity diagrams of the whole pipeline. Rounded boxes are actions,
+diamonds are decisions, cylinders are what lands on disk. Each label names the
+function that does the work, so a box reads straight back into the source.
+
+The four stages, and what passes between them:
+
+```mermaid
+flowchart TD
+    START(["graph-ingest CORPUS --out-dir build --into corpus.yaml"]) --> S1
+    S1["Stage 1 &bull; graphingest.ris<br/>pair PDFs with citations"]
+    A1[("manifest.json")]
+    S2["Stage 2 &bull; graphingest.convert<br/>PDF to markdown"]
+    A2[("markdown/SLUG.md")]
+    S3["Stage 3 &bull; graphingest.annotate<br/>markdown to a graph per document,<br/>terms grounded and nodes reconciled"]
+    A3[("graphs/SLUG.yaml<br/>graphs/SLUG.report.json")]
+    S4["Stage 4 &bull; graphingest.merge<br/>one graph"]
+    A4[("causal_graph.yaml / .json<br/>merge_report.json<br/>validation.json")]
+    IN[("--into: the existing graph.<br/>Read, never written,<br/>unless --in-place")]
+
+    S1 --> A1 --> S2 --> A2 --> S3 --> A3 --> S4 --> A4
+    IN -. "terms and nodes<br/>resolve against it" .-> S3
+    IN -. "merged into" .-> S4
+    S1 -. "--stop-after ris" .-> DONE(["stop early"])
+    S2 -. "--stop-after convert" .-> DONE
+    S3 -. "--stop-after annotate" .-> DONE
+```
+
+Every stage is resumable: rerunning skips work whose output already exists,
+unless `--force`.
+
+### Stage 1 &mdash; pair PDFs with citations
+
+```mermaid
+flowchart TD
+    R0(["a folder of PDFs with an RIS export"]) --> R1
+    R1["find_ris_files: every .ris under the corpus"]
+    R2["find_pdfs: every .pdf under the corpus"]
+    R3["parse_ris: split on TY and ER,<br/>join continuation lines"]
+    R4["per record: clean the title of exporter markup,<br/>collect authors, parse_year, parse_doi"]
+    R5{"does an L1, L2 or L4 link<br/>resolve to a file on disk?"}
+    R6["match = ris_link"]
+    R7{"filename similarity<br/>to the title at least 0.45?"}
+    R8["match = filename, with the score"]
+    R9["match = no_pdf, warning recorded"]
+    R10["build_slug, disambiguate collisions<br/>document_id = the DOI, else doc:slug"]
+    R11{"any PDF no record claimed?"}
+    R12["parse_filename for author, year and title<br/>match = unmatched_pdf"]
+    R13["carry markdown and graph paths forward<br/>from a previous run"]
+    R14[("manifest.json: a full account of the export,<br/>not only of the successes")]
+
+    R1 --> R3
+    R2 --> R3
+    R3 --> R4 --> R5
+    R5 -- yes --> R6 --> R10
+    R5 -- no --> R7
+    R7 -- yes --> R8 --> R10
+    R7 -- no --> R9 --> R10
+    R10 --> R11
+    R11 -- yes --> R12 --> R13
+    R11 -- no --> R13
+    R13 --> R14
+```
+
+### Stage 2 &mdash; PDF to markdown
+
+```mermaid
+flowchart TD
+    C0(["manifest rows that have a PDF, honouring --limit"]) --> C1
+    C1{"--converter"}
+    C2["marker: load the models, then wire LLM assist<br/>by dotted path, then by patching the default,<br/>then carry on without it"]
+    C3["pymupdf: the text layer, one section per page"]
+    C4{"markdown already there<br/>and not --force?"}
+    C5["status = skipped_existing"]
+    C6{"is the PDF still on disk?"}
+    C7["status = failed<br/>one bad PDF does not end the run"]
+    C8["render the PDF"]
+    C9{"fewer words than --min-words?"}
+    C10["status = suspect_short<br/>a scan with no text layer wants --force-ocr"]
+    C11["status = converted"]
+    C12[("markdown/SLUG.md<br/>conversion_report.json<br/>manifest.json updated in place")]
+
+    C1 -- marker --> C2 --> C4
+    C1 -- pymupdf --> C3 --> C4
+    C4 -- yes --> C5 --> C12
+    C4 -- no --> C6
+    C6 -- no --> C7 --> C12
+    C6 -- yes --> C8 --> C9
+    C9 -- yes --> C10 --> C12
+    C9 -- no --> C11 --> C12
+```
+
+### Stage 3 &mdash; markdown to a graph per document
+
+Set up once, then repeated per document. The two resolution steps are drawn
+out below.
+
+```mermaid
+flowchart TD
+    P0(["once, before the loop"]) --> P1
+    P1["build_extraction_profile: the LinkML schema becomes<br/>classes, slots, enums, CURIE prefixes, identifier flags"]
+    P2["grounder_from_config: routes, curated overrides,<br/>fetch and index each local ontology such as ELMO"]
+    P3["load_example: turn the gold standard's CURIEs back into<br/>labels, trim to --example-max-nodes"]
+    P4["NodeReconciler over --into, read-only"]
+    P5["LLMClient from config/pipeline.yaml"]
+    P1 --> P2 --> P3 --> P4 --> P5 --> P6
+
+    P6(["for each document"]) --> P7
+    P7{"graph already there<br/>and not --force?"}
+    P7 -- yes --> P8["status = skipped_existing"]
+    P7 -- no --> P9
+    P9["source_document_from_row: the manifest row,<br/>filtered to slots the schema actually models"]
+    P10["build_system_prompt: the four annotator rules,<br/>narrowed by --domain"]
+    P11["build_extraction_json_schema: prune to what CausalNode<br/>and CausalEdge reach, relax enums over 40 values"]
+    P12["Chunker.chunk_text: the whole article, or sections<br/>of --max-chunk-characters"]
+    P13["build_extraction_prompt: every class and slot, each enum<br/>with the schema's own annotator hints, the plain-term<br/>note on term slots, the one-shot, the article"]
+    P14["LLMClient.complete_json"]
+    P15["_attach_spans: find each quoted sentence in the chunk<br/>and record real start_char and end_char"]
+    P16["normalize_graph: drop invented slots, coerce enums,<br/>apply defaults, mint stable ids, rewire endpoints,<br/>drop edges whose endpoints do not exist"]
+    P17{"more chunks?"}
+    P18["Consolidator: merge the chunk graphs on node identity"]
+    P19["annotator_stamp, checked against the schema's pattern"]
+    P20["provenance: schema name, version, exporter, timestamp"]
+    P21["ground_graph: every entity_term, including<br/>the ones inside applied_to"]
+    P22["reconcile against --into"]
+    P23["validate_graph: JSON Schema, then referential integrity"]
+    P24[("graphs/SLUG.yaml<br/>graphs/SLUG.report.json")]
+
+    P9 --> P10 --> P11 --> P12 --> P13 --> P14 --> P15 --> P16 --> P17
+    P17 -- yes --> P13
+    P17 -- no --> P18 --> P19 --> P20 --> P21 --> P22 --> P23 --> P24
+    P8 --> P24
+```
+
+#### Inside `LLMClient.complete_json`
+
+```mermaid
+flowchart TD
+    L0(["system prompt, user prompt, pruned JSON Schema"]) --> L1
+    L1["dispatch on provider: ollama and openai_compatible<br/>share a path, anthropic has its own"]
+    L2{"did the endpoint refuse<br/>the response_format?"}
+    L3["degrade: json_schema, then json_object,<br/>then no constraint at all"]
+    L4{"content empty, reasoning present,<br/>and finish_reason is length?"}
+    L5(["fail loudly: the model spent the whole<br/>generation budget thinking"])
+    L6["extract_json_object: strip code fences,<br/>think blocks and trailing prose"]
+    L7{"parsed as a JSON object?"}
+    L8["re-prompt with the parse error,<br/>up to max_repair_attempts"]
+    L9(["a parsed dict"])
+
+    L1 --> L2
+    L2 -- yes --> L3 --> L1
+    L2 -- no --> L4
+    L4 -- yes --> L5
+    L4 -- no --> L6 --> L7
+    L7 -- no --> L8 --> L1
+    L7 -- yes --> L9
+```
+
+#### Grounding one term
+
+The model supplied plain language. This is where it becomes an ontology term,
+or honestly stays text.
+
+```mermaid
+flowchart TD
+    G0(["entity_term, entity_type"]) --> G1
+    G1{"already shaped like<br/>an identifier?"}
+    G1 -- yes --> G2(["leave it alone: a previous run grounded it"])
+    G1 -- no --> G3{"decided in<br/>grounding_overrides.yaml?"}
+    G3 -- yes --> G4(["use the decided CURIE, via = override"])
+    G3 -- no --> G5["route by entity_type into an ordered<br/>list of backends"]
+    G5 --> G6["next backend: a local ontology,<br/>OLS, or Wikidata"]
+    G6 --> G7{"cached for this<br/>route and term?"}
+    G7 -- yes --> G11
+    G7 -- no --> G8["query: a local index in memory,<br/>or the service, then pause"]
+    G8 --> G9{"reachable?"}
+    G9 -- no --> G10(["count an error, keep the term,<br/>and do not retry any shorter"])
+    G9 -- yes --> G11["score every candidate on its label and its synonyms,<br/>synonyms discounted, each also tried without<br/>a trailing classifier noun such as 'process'"]
+    G11 --> G12["Wikidata only: drop hits that are not taxa"]
+    G12 --> G13["cache the best candidate, whatever it scored"]
+    G13 --> G14{"an exact match?"}
+    G14 -- yes --> G18
+    G14 -- no --> G15{"backends left on the route?"}
+    G15 -- yes --> G6
+    G15 -- no --> G16{"best across the whole route<br/>at least min_score?"}
+    G16 -- yes --> G18
+    G16 -- no --> G17{"backoff on, and the<br/>phrase has a tail?"}
+    G17 -- yes --> G19["retry on the trailing words, held to<br/>min_score plus backoff_penalty"]
+    G19 --> G6
+    G17 -- no --> G20(["unresolved: keep the authors' wording,<br/>record the miss"])
+    G18(["replace the term with the CURIE; record the match,<br/>its ontology, its score and how it was reached"])
+```
+
+#### Reconciling one node
+
+Runs once a node's terms are grounded. This is the step that makes an ingest
+additive rather than parallel.
+
+```mermaid
+flowchart TD
+    N0(["a freshly extracted node"]) --> N1
+    N1{"identity tuple matches<br/>an existing node?"}
+    N1 -- yes --> N7["match, rule = identity, score 1.0"]
+    N1 -- no --> N2{"does an existing node share<br/>entity_term AND qualifier<br/>AND entity_type?"}
+    N2 -- no --> N3(["no match: this node is new"])
+    N2 -- yes --> N4["score the measured attributes: token overlap,<br/>or one contained in the other at a discount"]
+    N4 --> N5{"at least<br/>--reconcile-min-score?"}
+    N5 -- no --> N3
+    N5 -- yes --> N6["match, rule = grounded or lexical"]
+    N6 --> N7
+    N7 --> N8["adopt the existing id AND its identity fields,<br/>keeping this document's spans and applied_to"]
+    N8 --> N9["rewrite every edge, mediator, moderator and<br/>comparator that pointed at the old id"]
+    N9 --> N10{"do two nodes now<br/>share one id?"}
+    N10 -- yes --> N11["collapse them and union their evidence"]
+    N10 -- no --> N12(["record the match with its rule and score"])
+    N11 --> N12
+```
+
+Never matched, whatever the wording: a different `state_or_change_qualifier`
+(increased and decreased are opposite claims), a different `entity_type`, or a
+different grounded CURIE. Those are refusals, not thresholds.
+
+### Stage 4 &mdash; one graph
+
+```mermaid
+flowchart TD
+    M0(["the document graphs, and --into"]) --> M1
+    M1["collect_paths: the graphs, skipping<br/>the report files written beside them"]
+    M2["load --into and put it first, so its graph_id<br/>and provenance survive the merge"]
+    M3["merge nodes on entity_term, measured_attribute,<br/>state_or_change_qualifier and entity_type"]
+    M4["rewrite every edge endpoint, mediator, moderator<br/>and comparator through the id map"]
+    M5["deduplicate edges on subject, predicate, object,<br/>sentence and source document"]
+    M6["mint content-derived edge ids from the final endpoints"]
+    M7["union the source documents, and carry<br/>ontology_snapshot_id forward from whoever has one"]
+    M8["validate_graph"]
+    M9[("causal_graph.yaml / .json<br/>merge_report.json<br/>validation.json")]
+    M10{"--in-place?"}
+    M11{"does the merged graph validate?"}
+    M12["copy the previous graph to .bak, then write --into"]
+    M13(["refuse to write back, and say where the result is"])
+
+    M1 --> M2 --> M3 --> M4 --> M5 --> M6 --> M7 --> M8 --> M9 --> M10
+    M10 -- no --> DONE(["done"])
+    M10 -- yes --> M11
+    M11 -- yes --> M12 --> DONE
+    M11 -- no --> M13
+```
+
+The sections below walk the same four stages in prose.
+
+## Stage by stage
+
+### 1. Read the corpus
+
+```bash
+python -m graphingest.ris "/path/to/corpus" --out build/manifest.json
+```
+
+Three matching strategies run in order and the manifest records which one
+produced each row, because a citation attached to the wrong PDF is worse than
+no citation: the RIS file link (`L1`/`L2`/`L4`), then filename similarity
+against the title, then nothing. A PDF no record claims is still ingested, with
+metadata parsed out of its filename; a record whose PDF is missing is kept as
+`no_pdf`. The manifest is a full account of the export, not of the successes.
+
+`document_id` is the DOI wherever there is one, so the same paper ingested from
+two folders merges into one source document.
+
+### 2. Convert
+
+```bash
+python -m graphingest.convert --manifest build/manifest.json --out-dir build/markdown
+python -m graphingest.convert --manifest build/manifest.json --out-dir build/markdown \
+    --converter pymupdf          # fast, no models, poor on multi-column scans
+```
+
+`marker` is the default: layout-aware, reconstructs tables and reading order,
+optionally LLM-assisted. `pymupdf` is the fallback for a smoke test or a clean
+born-digital PDF. A conversion under `--min-words` is recorded as
+`suspect_short` rather than shipped as a stub article — that usually means a
+scan with no text layer, and `--force-ocr`.
+
+### 3. Annotate
+
+```bash
+python -m graphingest.annotate --manifest build/manifest.json \
+    --markdown-dir build/markdown --out-dir build/graphs \
+    --example examples/murphy_2005_camo_annotation_revised.yaml
+python -m graphingest.annotate --article paper.md --out graph.yaml --dry-run
+```
+
+One graph per document, plus a `<slug>.report.json` recording what the model
+did: chunks, what normalization coerced or dropped, what grounding resolved,
+what reconciliation matched to the existing graph, and the validator's verdict. `--dry-run` prints the rendered prompt without
+calling anything.
+
+Normalization is schema-driven rather than a hand-maintained alias table per
+enum: model output is coerced by folding case and punctuation and then token
+matching against the permissible values, with a small curated table only for
+mappings no string similarity can derive (`correlation -> associational` is a
+modelling decision, not a typo). Anything that cannot be coerced is reported,
+not silently dropped.
+
+### 4. Merge
+
+```bash
+python -m graphingest.merge build/graphs --into ~/mosaic/causal_graph.yaml \
+    --out build/causal_graph.yaml --validate
+```
+
+`--into` is what makes this an ingest rather than a rebuild: the existing graph
+is merged in first, so its `graph_id` and provenance survive and the new
+documents attach to nodes already there. It is read, never written, unless you
+pass `--in-place` — and then the previous version is kept beside it as `.bak`
+first. `graphingest.run --in-place` goes one step further and refuses to write
+back a merged graph that does not validate.
+
+Nodes are merged on meaning, not label: `entity_term` + `measured_attribute` +
+`state_or_change_qualifier` + `entity_type`. Two studies reporting "increased
+native richness" become one node with two incoming edges rather than two
+disconnected islands.
+
+## Output
+
+```
+build/manifest.json             what was found, and how each PDF was matched
+build/markdown/<slug>.md        converted articles
+build/graphs/<slug>.yaml        per-document graphs
+build/graphs/<slug>.report.json extraction, grounding, reconciliation, validation
+build/grounding_cache.json      every ontology lookup, reused across runs
+ontologies/                     fetched ontologies and their term indexes
+build/causal_graph.yaml/.json   the merged result
+build/merge_report.json         what merged with what
+build/validation.json           the validator's verdict
+build/run.log                   the whole run
+```
+
+Rerunning skips work already done, so an interrupted run resumes and a corpus
+that gained three new PDFs costs three conversions rather than fifty. `--force`
+redoes everything; `--stop-after ris` lets you look before spending an evening
+of GPU time.
+
+## Validate anything
+
+```bash
+python -m graphingest.validate graph.yaml --schema schema/causalmosaic.yaml
+```
+
+JSON Schema catches shape and enum violations; it cannot check that an edge's
+`subject` names a node that exists, so referential integrity is checked
+alongside it.
+
+## Tests
+
+```bash
+python -m pytest tests/ -q
+```
+
+All offline — the lookup backends are exercised through a stub and the local
+ontology backend against a fragment of real ELMO, because what is worth testing
+is the routing, the thresholds, the overrides, what reconciliation refuses to
+merge, and the failure behaviour, none of which depend on EBI being up.
+
+## Provenance
+
+Every edge carries `source_document` (a `document_id` into `source_documents`),
+`original_sentence`, and `source_spans` with character offsets into the source
+article, so an answer is traceable to a sentence. A quote the model invented
+will not be found in the article and so gets no offsets — itself a useful
+signal when reviewing an extraction. Nodes and edges are stamped with the model
+that annotated them, and `provenance.ontology_snapshot_id` records what did the
+grounding and when.

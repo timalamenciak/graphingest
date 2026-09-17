@@ -1,0 +1,34 @@
+# Terms whose grounding is a judgement, not a lookup.
+#
+# Consulted before any ontology search, and never overruled by one. Only add a
+# term here when the lexical best match is *wrong*, not merely when it is
+# missing — a term nothing matches should stay as the authors wrote it and be
+# counted as unresolved, which is information. An entry that silences a real
+# gap is worse than the gap.
+#
+# Each entry is an editorial decision, so keep the reasoning with it.
+#
+#   "<term as it appears in the text>":
+#     curie: PREFIX:0000000
+#     label: the ontology term's own label
+#
+# A bare string is accepted as shorthand for {curie: ...}.
+
+terms:
+  # CHEBI's best lexical match for "phosphorus" is CHEBI:35895 tetraphosphorus,
+  # the P4 allotrope, because that term carries "phosphorus" as an exact
+  # synonym. Papers about nutrient limitation mean the element, which is
+  # CHEBI:28659. No similarity threshold can separate these two: both are
+  # exact string matches, and only the sense differs.
+  "phosphorus":
+    curie: CHEBI:28659
+    label: phosphorus atom
+  "phosphorous":            # the common misspelling, same decision
+    curie: CHEBI:28659
+    label: phosphorus atom
+
+  # Likewise nitrogen: CHEBI:17997 is dinitrogen (N2, the gas), while a
+  # fertilisation or nutrient-loading claim is about the element, CHEBI:25555.
+  "nitrogen":
+    curie: CHEBI:25555
+    label: nitrogen atom

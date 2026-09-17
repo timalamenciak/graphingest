@@ -1,0 +1,485 @@
+graph_id: camo_murphy_2005_conceptual_annotation
+schema_version: 0.7.9
+provenance:
+  ontology_framework: ELMO + CAMO
+  causal_mosaic_version: 0.7.9
+  created: '2026-07-07T22:05:00-04:00'
+  source_corpus: Single restoration ecology article supplied by user
+  project: EcoWeaver
+  annotation_guide_version: CAMO schema 0.7.3; revised higher-abstraction annotation;
+    migrated 0.7.3 -> 0.7.9
+nodes:
+- id: node:murphy2005_sanguinaria_transplanting
+  name: Introduction of transplanted Sanguinaria canadensis
+  entity_type: management_intervention
+  entity_term: 'plant translocation process transplanting '
+  state_or_change_qualifier: introduced
+  applied_to:
+  - entity_type: taxon
+    entity_term: Sanguinaria canadensis
+  source_spans:
+  - text: I transplanted S. canadensis at densities of 0, 1, 2, 3, 5, 7, 9, 11, 15,
+      and 20 ramets/m2
+  annotator: camo_agent:gpt-5.5-thinking
+- id: node:murphy2005_alliaria_population_performance
+  name: Decreased population performance of Alliaria petiolata
+  entity_type: taxon
+  entity_term: Alliaria petiolata
+  measured_attribute: population performance
+  state_or_change_qualifier: decreased
+  source_spans:
+  - text: initial S. canadensis densities of as little as 5 ramets/m2 suppressed A.
+      petiolata
+  - text: densities of 9 and 11 ramets/m2 resulted in the lowest numbers of late-spring
+      seedlings, numbers and sizes of year 1 and 2 rosettes
+  annotator: camo_agent:gpt-5.5-thinking
+- id: node:murphy2005_alliaria_reproductive_output
+  name: Decreased reproductive output of Alliaria petiolata
+  entity_type: taxon
+  entity_term: Alliaria petiolata
+  measured_attribute: reproductive output
+  state_or_change_qualifier: decreased
+  source_spans:
+  - text: number of flowers, number of fruits (siliques), and height at flowering
+  - text: Given the reduced fruit set, a long-term implication is that populations
+      of A. petiolata will decrease locally
+  annotator: camo_agent:gpt-5.5-thinking
+- id: node:murphy2005_resource_availability_to_alliaria
+  name: Decreased resource availability to Alliaria petiolata
+  entity_type: environmental_variable
+  entity_term: resource availability
+  state_or_change_qualifier: decreased
+  source_spans:
+  - text: It appears that intermediate and higher densities of S. canadensis deprived
+      A. petiolata of sufficient resources to produce large leaves, flowers, and fruits
+  annotator: camo_agent:gpt-5.5-thinking
+  applied_to:
+  - entity_term: Allariia petiolata
+- id: node:murphy2005_alliaria_seed_bank_persistence
+  name: Persistent Alliaria petiolata seed bank
+  entity_type: taxon
+  entity_term: Alliaria petiolata
+  measured_attribute: seed bank persistence
+  state_or_change_qualifier: present
+  source_spans:
+  - text: an existing, extensive seed bank persisted throughout and was not affected
+      after only 4 years
+  annotator: camo_agent:gpt-5.5-thinking
+- id: node:murphy2005_alliaria_seedling_emergence
+  name: Unchanged seasonal seedling emergence of Alliaria petiolata
+  entity_type: taxon
+  entity_term: Alliaria petiolata
+  measured_attribute: seasonal seedling emergence
+  state_or_change_qualifier: unchanged
+  source_spans:
+  - text: Early-spring emergence of seedlings in A. petiolata remained relatively
+      constant
+  - text: there were no differences between density treatments in the numbers of autumn
+      seedlings
+  annotator: camo_agent:gpt-5.5-thinking
+- id: node:murphy2005_native_understory_reestablishment
+  name: Reestablishment of other native understory species
+  entity_type: environmental_variable
+  entity_term: re-establishment
+  state_or_change_qualifier: increased
+  source_spans:
+  - text: This success may provide opportunity for other native species to reestablish
+  - text: By 2000, I had not detected any increase in other native species
+  annotator: camo_agent:gpt-5.5-thinking
+  applied_to:
+  - entity_term: native forest understory species
+edges:
+- id: edge:murphy2005_sanguinaria_suppresses_alliaria_performance
+  subject: node:murphy2005_sanguinaria_transplanting
+  predicate: causes
+  object: node:murphy2005_alliaria_population_performance
+  negated: false
+  claim_strength: direct_causal
+  original_sentence: the experiments indicated that transplanting S. canadensis was
+    effective at mitigating the spread of A. petiolata.
+  ecosystem_context: deciduous_temperate_forests
+  philosophical_accounts:
+  - interventionist
+  - probabilistic
+  - agency
+  necessity: not_addressed
+  sufficiency: explicitly_denied
+  direction:
+    status: asserted
+    evidence_for_direction: experimental
+  temporal_ordering: explicitly_asserted
+  mediation:
+    status: implicitly_assumed
+    mediator_node_ids:
+    - node:murphy2005_resource_availability_to_alliaria
+    pathway_description: The author interprets the effect as competition during spring
+      phenological overlap, probably through reduced resource availability, especially
+      light.
+  moderation:
+    status: explicitly_asserted
+    interaction_type: quantitative
+    moderator_node_ids: []
+  strength:
+    status: explicitly_asserted
+    quantitative_value: Effective threshold reported from about 5 ramets/m2; strongest
+      results generally at 9-11 ramets/m2. Specific treatment means and MANOVAR values
+      belong in the evidence graph.
+    qualitative_descriptor: strong
+    dose_response: true
+  specificity: explicitly_asserted
+  stability: not_addressed
+  token_or_type: type
+  determinism: ambiguous
+  proximate_distal: proximate
+  contributing_sole: contributing_cause
+  reversibility: partially_reversible
+  proportionality: explicitly_asserted
+  context_dependence:
+    status: explicitly_asserted
+    scope_conditions:
+    - degraded deciduous woodlot edge
+    - high local Alliaria petiolata density
+    - intermediate Sanguinaria canadensis planting density most effective
+    - very low planting densities weak; very high densities provide no additional
+      benefit
+    geographic_scope: Region of Waterloo, Ontario, Canada
+    temporal_scope: 1997-2000 field experiment
+    ecosystem_scope: deciduous_temperate_forests
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    evidence_objects:
+    - both
+  fcm_weight: -0.75
+  fcm_weight_source: conceptual summary of randomized block field experiment; density-specific
+    evidence retained for evidence graph
+  temporal_extent:
+    duration_months: 48
+    duration_text: Four growing seasons, 1997-2000
+    observation_grain: seasonal
+    observation_seasons:
+    - spring
+    - summer
+    - autumn
+  source_spans:
+  - text: initial S. canadensis densities of as little as 5 ramets/m2 suppressed A.
+      petiolata
+  - text: initial S. canadensis densities of 9 and 11 ramets/m2 resulted in the lowest
+      numbers
+  - text: the experiments indicated that transplanting S. canadensis was effective
+      at mitigating the spread of A. petiolata
+  source_document: 10.1111/j.1526-100X.2005.00075.x
+  annotator: camo_agent:gpt-5.5-thinking
+  annotation_confidence: 0.92
+  annotation_timestamp: '2026-07-07T22:05:00-04:00'
+  annotation_notes: 'Revised CAMO abstraction: treatment density is represented as
+    strength/context/moderation metadata, not as separate causal nodes.'
+- id: edge:murphy2005_sanguinaria_suppresses_alliaria_reproduction
+  subject: node:murphy2005_sanguinaria_transplanting
+  predicate: causes
+  object: node:murphy2005_alliaria_reproductive_output
+  negated: false
+  claim_strength: direct_causal
+  original_sentence: Given the reduced fruit set, a long-term implication is that
+    populations of A. petiolata will decrease locally as long as immigration of new
+    seeds does not counter this.
+  ecosystem_context: deciduous_temperate_forests
+  philosophical_accounts:
+  - interventionist
+  - probabilistic
+  - agency
+  necessity: not_addressed
+  sufficiency: explicitly_denied
+  direction:
+    status: asserted
+    evidence_for_direction: experimental
+  temporal_ordering: explicitly_asserted
+  mediation:
+    status: implicitly_assumed
+    mediator_node_ids:
+    - node:murphy2005_resource_availability_to_alliaria
+    pathway_description: Competition from Sanguinaria canadensis is inferred to reduce
+      resources available for garlic mustard vegetative and reproductive allocation.
+  moderation:
+    status: explicitly_asserted
+    interaction_type: quantitative
+    moderator_node_ids: []
+  strength:
+    status: explicitly_asserted
+    quantitative_value: Significant suppression reported for flowering individuals,
+      flowers, siliques, and height at flowering; strongest outcomes generally at
+      intermediate planting densities.
+    qualitative_descriptor: strong
+    dose_response: true
+  specificity: explicitly_asserted
+  stability: not_addressed
+  token_or_type: type
+  determinism: ambiguous
+  proximate_distal: proximate
+  contributing_sole: contributing_cause
+  reversibility: partially_reversible
+  proportionality: explicitly_asserted
+  context_dependence:
+    status: explicitly_asserted
+    scope_conditions:
+    - long-term population decline depends on reduced seed input not being offset
+      by immigration
+    - small woodlot context more favorable than large contiguous infestation
+    geographic_scope: Region of Waterloo, Ontario, Canada
+    temporal_scope: 1997-2000 observed response; longer-term local population effect
+      inferred
+    ecosystem_scope: deciduous_temperate_forests
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    - theoretical
+    evidence_objects:
+    - both
+  fcm_weight: -0.7
+  fcm_weight_source: conceptual summary of reproductive endpoints; endpoint-level
+    detail retained for evidence graph
+  temporal_extent:
+    duration_months: 48
+    duration_text: Four growing seasons, with longer-term population decline inferred
+      from reduced fruit set
+    observation_grain: seasonal
+  source_spans:
+  - text: The number of stem leaves, gross leaf area, number of flowers, number of
+      siliques, and height at final flowering were all significantly suppressed
+  - text: Given the reduced fruit set, a long-term implication is that populations
+      of A. petiolata will decrease locally
+  source_document: 10.1111/j.1526-100X.2005.00075.x
+  annotator: camo_agent:gpt-5.5-thinking
+  annotation_confidence: 0.89
+  annotation_timestamp: '2026-07-07T22:05:00-04:00'
+  annotation_notes: Separated from general population performance because reproductive
+    suppression is the bridge to long-term management inference.
+- id: edge:murphy2005_sanguinaria_competition_reduces_resources
+  subject: node:murphy2005_sanguinaria_transplanting
+  predicate: contributes_to
+  object: node:murphy2005_resource_availability_to_alliaria
+  negated: false
+  claim_strength: uncertain_causal
+  original_sentence: It appears that intermediate and higher densities of S. canadensis
+    deprived A. petiolata of sufficient resources to produce large leaves, flowers,
+    and fruits.
+  ecosystem_context: deciduous_temperate_forests
+  philosophical_accounts:
+  - mechanistic
+  - transmission
+  necessity: not_addressed
+  sufficiency: not_addressed
+  direction:
+    status: asserted
+    evidence_for_direction: theoretical
+  temporal_ordering: implicitly_assumed
+  mediation:
+    status: not_addressed
+  moderation:
+    status: explicitly_asserted
+    interaction_type: quantitative
+    moderator_node_ids: []
+  strength:
+    status: implicitly_assumed
+    qualitative_descriptor: moderate
+    dose_response: true
+  specificity: not_addressed
+  stability: not_addressed
+  token_or_type: type
+  determinism: ambiguous
+  proximate_distal: proximate
+  contributing_sole: contributing_cause
+  reversibility: not_addressed
+  proportionality: not_addressed
+  context_dependence:
+    status: explicitly_asserted
+    scope_conditions:
+    - mechanism not directly tested
+    - spring understory competition
+    - light competition plausible from cited literature
+    geographic_scope: Eastern deciduous forest context; field test in Waterloo Region,
+      Ontario
+    temporal_scope: spring phenological overlap
+    ecosystem_scope: deciduous_temperate_forests
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    - theoretical
+    evidence_objects:
+    - both
+  fcm_weight: -0.45
+  fcm_weight_source: mechanism inferred by author; not experimentally isolated
+  temporal_extent:
+    duration_text: spring leafing period
+    observation_grain: seasonal
+    observation_seasons:
+    - spring
+  source_spans:
+  - text: I did not design the experiment to test directly for the mechanism of competition
+  - text: most understory plants tend to compete for light
+  - text: deprived A. petiolata of sufficient resources
+  source_document: 10.1111/j.1526-100X.2005.00075.x
+  annotator: camo_agent:gpt-5.5-thinking
+  annotation_confidence: 0.72
+  annotation_timestamp: '2026-07-07T22:05:00-04:00'
+  annotation_notes: Mechanistic CAMO edge retained, but explicitly marked as inferred
+    rather than directly tested.
+- id: edge:murphy2005_seed_bank_buffers_seedling_reduction
+  subject: node:murphy2005_alliaria_seed_bank_persistence
+  predicate: enables
+  object: node:murphy2005_alliaria_seedling_emergence
+  negated: false
+  claim_strength: uncertain_causal
+  original_sentence: Early-spring emergence of seedlings in A. petiolata remained
+    relatively constant, probably indicating that an existing, extensive seed bank
+    persisted throughout and was not affected after only 4 years.
+  ecosystem_context: deciduous_temperate_forests
+  philosophical_accounts:
+  - mechanistic
+  - regularity
+  necessity: not_addressed
+  sufficiency: not_addressed
+  direction:
+    status: asserted
+    evidence_for_direction: theoretical
+  temporal_ordering: explicitly_asserted
+  mediation:
+    status: not_addressed
+  moderation:
+    status: implicitly_assumed
+    interaction_type: not_specified
+    moderator_node_ids:
+    - node:murphy2005_sanguinaria_transplanting
+  strength:
+    status: explicitly_asserted
+    quantitative_value: Seed bank from nearby woodlots reported as 2,567 +/- 478 seeds/m3;
+      early-spring and autumn seedling numbers did not differ among treatments.
+    qualitative_descriptor: moderate
+    dose_response: false
+  specificity: explicitly_asserted
+  stability: implicitly_assumed
+  token_or_type: type
+  determinism: ambiguous
+  proximate_distal: proximate
+  contributing_sole: contributing_cause
+  reversibility: not_addressed
+  proportionality: explicitly_asserted
+  context_dependence:
+    status: explicitly_asserted
+    scope_conditions:
+    - large garlic mustard seed bank
+    - four-year monitoring window
+    - Sanguinaria canadensis senescence before autumn seedling emergence
+    geographic_scope: Region of Waterloo, Ontario, Canada
+    temporal_scope: 1997-2000 field experiment
+    ecosystem_scope: deciduous_temperate_forests
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    - observational_cross_sectional
+    evidence_objects:
+    - both
+  fcm_weight: 0.45
+  fcm_weight_source: conceptual summary of seed bank limitation
+  temporal_extent:
+    duration_months: 48
+    duration_text: Four growing seasons
+    observation_grain: seasonal
+  source_spans:
+  - text: an existing, extensive seed bank persisted throughout and was not affected
+      after only 4 years
+  - text: there were no differences between density treatments in the numbers of autumn
+      seedlings
+  source_document: 10.1111/j.1526-100X.2005.00075.x
+  annotator: camo_agent:gpt-5.5-thinking
+  annotation_confidence: 0.82
+  annotation_timestamp: '2026-07-07T22:05:00-04:00'
+  annotation_notes: 'This edge captures an important limit on the intervention: suppression
+    of performance does not equal immediate elimination of seedling emergence.'
+- id: edge:murphy2005_sanguinaria_not_yet_native_reestablishment
+  subject: node:murphy2005_sanguinaria_transplanting
+  predicate: enables
+  object: node:murphy2005_native_understory_reestablishment
+  negated: true
+  claim_strength: no_relationship
+  original_sentence: By 2000, I had not detected any increase in other native species
+    or other exotics in any treatments.
+  ecosystem_context: deciduous_temperate_forests
+  philosophical_accounts:
+  - interventionist
+  - agency
+  necessity: not_addressed
+  sufficiency: explicitly_denied
+  direction:
+    status: asserted
+    evidence_for_direction: experimental
+  temporal_ordering: explicitly_asserted
+  mediation:
+    status: not_addressed
+  moderation:
+    status: implicitly_assumed
+    interaction_type: not_specified
+  strength:
+    status: explicitly_asserted
+    quantitative_value: No increase detected by 2000; data not reported because numbers
+      were low and trends absent.
+    qualitative_descriptor: negligible
+    dose_response: false
+  specificity: explicitly_asserted
+  stability: not_addressed
+  token_or_type: token
+  determinism: ambiguous
+  proximate_distal: distal
+  contributing_sole: contributing_cause
+  reversibility: not_addressed
+  proportionality: explicitly_asserted
+  context_dependence:
+    status: explicitly_asserted
+    scope_conditions:
+    - short early restoration window
+    - possible lack of seed bank or propagule sources
+    - possible mycorrhizal and decomposition constraints
+    geographic_scope: Region of Waterloo, Ontario, Canada
+    temporal_scope: by 2000
+    ecosystem_scope: deciduous_temperate_forests
+  evidential_basis:
+    evidence_types:
+    - randomized_experiment
+    evidence_objects:
+    - correlation
+  fcm_weight: 0.0
+  fcm_weight_source: observed null outcome
+  temporal_extent:
+    duration_months: 48
+    duration_text: No detectable increase by 2000
+    observation_grain: seasonal
+  source_spans:
+  - text: there is no evidence yet of regeneration of other native species
+  - text: By 2000, I had not detected any increase in other native species
+  source_document: 10.1111/j.1526-100X.2005.00075.x
+  annotator: camo_agent:gpt-5.5-thinking
+  annotation_confidence: 0.86
+  annotation_timestamp: '2026-07-07T22:05:00-04:00'
+  annotation_notes: 'Important null edge: garlic mustard suppression and bloodroot
+    establishment did not yet translate into broader native community recovery.'
+source_documents:
+- doi: 10.1111/j.1526-100X.2005.00075.x
+  title: Concurrent Management of an Exotic Species and Initial Restoration Efforts
+    in Forests
+  authors:
+  - Stephen D. Murphy
+  year: 2005
+  journal: Restoration Ecology
+  study_country: Canada
+  study_state_or_province: Ontario
+  study_period_start: '1997'
+  study_period_end: '2000'
+  study_temporal_note: Transplants installed in autumn 1997; responses monitored during
+    1997-2000 growing seasons.
+  study_design: randomized_experiment
+  document_id: 10.1111/j.1526-100X.2005.00075.x
+  sampling_effort_protocol: '40 plots: four randomized complete blocks x ten Sanguinaria
+    canadensis density treatments; each plot 1 m2.'
+  is_sampling_effort_reported: true
+  sample_size_value: 40.0
+  sample_size_unit: plots

@@ -1,0 +1,19 @@
+build/
+# Fetched ontologies and their term indexes: derived, and large.
+ontologies/
+build_*/
+*.bak
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+# A stray virtualenv living inside the project root (Windows-only binaries;
+# would not run on another host anyway).
+ingest/
+*.egg-info/
+# OneDrive/SharePoint sync-conflict copies.
+*SFConflict*
+# Per-run pipeline output: generated graphs, reports, and markdown, not code.
+evidencejam_graph/
+mosquito_graph/
+mosquito_graph2/
