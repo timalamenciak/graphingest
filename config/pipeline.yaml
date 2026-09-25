@@ -57,6 +57,16 @@ llm:
   # Retries for malformed/unparseable structured output.
   max_repair_attempts: 2
 
+  # Sent verbatim on every OpenAI-compatible request, for server-specific
+  # switches. The one worth knowing about for --confidence: a reasoning model
+  # decides in its <think> block and then copies the answer out, so the JSON's
+  # tokens are near-certain and every item scores "high". On vLLM + Qwen3,
+  # switching thinking off puts the decisions back where the logprobs can
+  # see them (at some cost in extraction quality; measure both).
+  #
+  # extra_body:
+  #   chat_template_kwargs: {enable_thinking: false}
+
   # ---------------------------------------------------------------------------
   # Claude (Anthropic) — commented out. To use it:
   #
@@ -107,6 +117,110 @@ llm:
   # Not claude-fable-5-1: forced tool use returns a 400 on that model, and
   # forced tool use is how this client constrains output.
   # ---------------------------------------------------------------------------
+
+# =============================================================================
+# Extraction confidence from token logprobs (graphingest.confidence).
+#
+# Off by default: it multiplies what a run writes. `--confidence` turns it on
+# for one run; `--prompt-logprobs` adds the vLLM-only prompt side. Needs an
+# OpenAI-compatible endpoint that returns logprobs (vLLM, OpenAI, and recent
+# Ollama builds). The Anthropic API returns none, and the run says so rather than
+# pretending.
+#
+# The scores rank what to review; they are not calibrated probabilities that
+# a claim is true. Calibrate the thresholds on a gold-standard article before
+# reading "high" as "right".
+# =============================================================================
+
+confidence:
+  enabled: false
+
+  # Alternatives kept per generated token. These are what turn "the model was
+  # unsure" into "the model nearly wrote decreased". OpenAI caps this at 20,
+  # and so does vLLM unless started with a larger --max-logprobs.
+  top_logprobs: 5
+
+  # vLLM only: logprobs of the PROMPT tokens. null = off, 0 = the prompt
+  # token's own logprob (all the report uses), k = k alternatives too. It
+  # scores the article, not the extraction: perplexity per document and its
+  # most surprising passages, which is where garbled PDF conversion shows up.
+  # It costs a logit per prompt token on a ~25k-token prompt.
+  prompt_logprobs: null
+
+  # Every token, with its alternatives, per field, in <slug>.confidence.json.
+  # This is most of the size; the scores and summaries do not need it.
+  store_tokens: true
+
+  # Triage buckets on an item's score (0-1).
+  buckets:
+    high: 0.9
+    medium: 0.6
+
+  # The fields that make a claim what it is. An item's score is its weakest
+  # core field; the others are recorded but do not move the bucket, so
+  # hesitation over `reversibility` does not demote "A causes B".
+  core_fields:
+    node: [entity_type, entity_term, measured_attribute, state_or_change_qualifier]
+    edge: [subject, predicate, object, negated, claim_strength]
+
+  # How many of the weakest items each summary lists.
+  review_count: 25
+
+# =============================================================================
+# Cross-model agreement (graphingest.ensemble).
+#
+# Off by default: every witness is one more full extraction per article.
+# `--ensemble` runs every witness below; `--witness NAME` runs one (repeat it
+# for more), and `--witness <model id>` uses a model the primary endpoint
+# serves without configuring it here.
+#
+# The llm block above stays the PRIMARY: its graph is the one saved and
+# merged. Witnesses only vote. Each primary node and edge is marked agreed,
+# partial, conflict or unsupported, anything not agreed is flagged, and
+# claims only the witnesses found are listed as possible omissions. All of it
+# goes in <slug>.agreement.json and agreement_summary.md; the graph itself is
+# never changed.
+#
+# A witness inherits the primary's endpoint, key and budget when it shares a
+# provider, so one on the same host needs only a name and a model. On another
+# provider it inherits nothing but max_tokens and timeout. Witness graphs are
+# kept under <graphs>/witnesses/<name>/ and reused on re-runs.
+#
+# Choose witnesses from DIFFERENT model families. A second checkpoint of the
+# primary's family shares most of its blind spots, so its agreement says
+# little.
+# =============================================================================
+
+ensemble:
+  enabled: false
+
+  # How alike two models' nodes must be to count as the same variable
+  # (entity term and measured attribute; the qualifier and type are what is
+  # compared, not what is matched on). Same scale as --reconcile-min-score.
+  match_min_score: 0.7
+
+  # The fields a found item must agree on. A field only one model filled in
+  # is not a disagreement.
+  compare_fields:
+    node: [entity_type, state_or_change_qualifier]
+    edge: [predicate, claim_strength, negated]
+
+  # Rows per table in agreement_summary.md.
+  review_count: 40
+
+  witnesses: []
+  # witnesses:
+  #   - name: llama                         # same endpoint and key as the primary
+  #     model: "${WITNESS_MODEL_1:-}"
+  #   - name: gemma
+  #     model: "${WITNESS_MODEL_2:-}"
+  #     max_chunk_characters: 60000         # a smaller context than the primary's
+  #   - name: sonnet                        # another provider: set everything
+  #     provider: anthropic
+  #     model: claude-sonnet-5
+  #     api_key: "${ANTHROPIC_API_KEY:-}"
+  #     structured_output: tool_use
+  #     max_tokens: 32000
 
 # Marker's LLM assist during PDF conversion can point at a different, cheaper
 # model on the same host. Set enabled: false to run Marker without it.

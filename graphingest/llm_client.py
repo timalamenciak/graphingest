@@ -18,6 +18,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
+from .confidence import (
+    MAX_TOP_LOGPROBS,
+    GenerationTrace,
+    tokens_from_openai,
+    tokens_from_prompt_logprobs,
+)
 from .config import DEFAULT_LLM_CONFIG, load_yaml
 
 LOGGER = logging.getLogger("camo.llm")
@@ -47,11 +53,20 @@ class LLMSettings:
     structured_output: str = "json_schema"
     max_repair_attempts: int = 2
     marker_llm: dict = field(default_factory=dict)
+    #: Passed through verbatim on OpenAI-compatible requests: server-specific
+    #: switches such as vLLM's ``chat_template_kwargs``.
+    extra_body: dict = field(default_factory=dict)
+    #: Ask for token logprobs (the ``confidence:`` block, or --confidence).
+    logprobs: bool = False
+    top_logprobs: int = 5
+    #: vLLM only. ``None`` is off; an int is the number of alternatives.
+    prompt_logprobs: Optional[int] = None
 
     @classmethod
     def from_config(cls, path: str | Path | None = None) -> "LLMSettings":
         data = load_yaml(path or DEFAULT_LLM_CONFIG)
         block = data.get("llm") or {}
+        confidence = data.get("confidence") or {}
         settings = cls(
             provider=block.get("provider", cls.provider),
             endpoint=block.get("endpoint", cls.endpoint),
@@ -65,6 +80,10 @@ class LLMSettings:
                 block.get("max_repair_attempts", cls.max_repair_attempts)
             ),
             marker_llm=data.get("marker_llm") or {},
+            extra_body=dict(block.get("extra_body") or {}),
+            logprobs=bool(confidence.get("enabled", False)),
+            top_logprobs=int(confidence.get("top_logprobs", cls.top_logprobs)),
+            prompt_logprobs=confidence.get("prompt_logprobs"),
         )
         settings.validate()
         return settings
@@ -110,6 +129,14 @@ class LLMClient:
         #: Set once a provider refuses the sampling parameters, so the whole
         #: run stops sending them after the first refusal.
         self._sampling_refused = False
+        #: Likewise for logprobs: an endpoint that refuses them once will
+        #: refuse them for every document.
+        self._logprobs_refused = False
+        #: Tokens behind the most recent reply, when logprobs were asked for
+        #: and returned; ``None`` otherwise. Read it right after a call.
+        self.last_trace: Optional[GenerationTrace] = None
+        #: Why ``last_trace`` is ``None`` when logprobs were asked for.
+        self.trace_unavailable: Optional[str] = None
 
     # -- public API ---------------------------------------------------------
 
@@ -178,7 +205,11 @@ class LLMClient:
         json_schema: Optional[dict],
         schema_name: str,
     ) -> str:
+        self.last_trace = None
+        self.trace_unavailable = None
         if self.settings.provider == "anthropic":
+            if self.settings.logprobs:
+                self.trace_unavailable = "the Anthropic API does not expose logprobs"
             return self._call_anthropic(system, user, json_schema, schema_name)
         return self._call_openai_compatible(system, user, json_schema, schema_name)
 
@@ -215,6 +246,16 @@ class LLMClient:
             "temperature": self.settings.temperature,
             "max_tokens": self.settings.max_tokens,
         }
+        extra_body = dict(self.settings.extra_body)
+        if self.settings.logprobs and not self._logprobs_refused:
+            kwargs["logprobs"] = True
+            top = max(0, min(self.settings.top_logprobs, MAX_TOP_LOGPROBS))
+            if top:
+                kwargs["top_logprobs"] = top
+            if self.settings.prompt_logprobs is not None:
+                extra_body["prompt_logprobs"] = int(self.settings.prompt_logprobs)
+        if extra_body:
+            kwargs["extra_body"] = extra_body
         mode = self.settings.structured_output
         if mode == "json_object":
             # No grammar: the server only guarantees syntactically valid JSON.
@@ -251,11 +292,11 @@ class LLMClient:
 
         tool_calls = getattr(message, "tool_calls", None)
         if tool_calls:
-            return tool_calls[0].function.arguments
+            return self._traced(response, choice, tool_calls[0].function.arguments)
 
         content = message.content
         if content:
-            return content
+            return self._traced(response, choice, content)
 
         # Reasoning models put their chain of thought in a separate field and
         # can spend the whole generation budget there, returning empty content.
@@ -281,10 +322,31 @@ class LLMClient:
                 "Empty content but %d characters of reasoning; attempting to "
                 "parse the reasoning text", len(reasoning),
             )
-            return reasoning
+            return self._traced(response, choice, reasoning)
         raise LLMError(
             f"Model returned an empty response (finish_reason={finish_reason!r})"
         )
+
+    def _traced(self, response: Any, choice: Any, text: str) -> str:
+        """Keep the tokens behind ``text`` when logprobs were asked for."""
+        if not self.settings.logprobs:
+            return text
+        if self._logprobs_refused:
+            self.trace_unavailable = "the endpoint refused the logprobs parameter"
+            return text
+        tokens = tokens_from_openai(getattr(choice, "logprobs", None))
+        if not tokens:
+            self.trace_unavailable = "the endpoint accepted logprobs but returned none"
+            return text
+        prompt_tokens = (
+            tokens_from_prompt_logprobs(response)
+            if self.settings.prompt_logprobs is not None else []
+        )
+        self.last_trace = GenerationTrace(
+            text=text, tokens=tokens, prompt_tokens=prompt_tokens,
+            finish_reason=getattr(choice, "finish_reason", None),
+        )
+        return text
 
     def _create_with_fallback(self, client: Any, kwargs: dict) -> Any:
         """Call the endpoint, degrading structured-output support if refused.
@@ -308,12 +370,35 @@ class LLMClient:
             attempts.append(plain)
 
         last_error: Optional[Exception] = None
-        for index, attempt in enumerate(attempts):
+        index = 0
+        while index < len(attempts):
+            attempt = attempts[index]
             try:
                 return client.chat.completions.create(**attempt)
             except Exception as error:  # noqa: BLE001 - provider errors vary widely
                 last_error = error
-                if index + 1 < len(attempts):
+                # A server that refuses logprobs has not refused JSON: drop the
+                # logprobs and retry the same format, rather than loosening the
+                # output constraint for nothing.
+                if ("prompt_logprobs" in str(error)
+                        and "prompt_logprobs" in (attempt.get("extra_body") or {})):
+                    LOGGER.warning(
+                        "Endpoint refused prompt_logprobs (vLLM only); keeping "
+                        "output logprobs: %s", str(error)[:160],
+                    )
+                    self.settings.prompt_logprobs = None
+                    attempts = [_without_prompt_logprobs(c) for c in attempts]
+                    continue
+                if _is_logprobs_rejection(error) and _has_logprobs(attempt):
+                    LOGGER.warning(
+                        "Endpoint refused logprobs (%s); continuing without "
+                        "confidence tracking", str(error)[:160],
+                    )
+                    self._logprobs_refused = True
+                    attempts = [_without_logprobs(candidate) for candidate in attempts]
+                    continue
+                index += 1
+                if index < len(attempts):
                     LOGGER.warning(
                         "Endpoint rejected structured-output request (%s); "
                         "retrying with a more permissive format",
@@ -384,6 +469,36 @@ class LLMClient:
             if getattr(block, "type", None) == "text":
                 return block.text
         raise LLMError("Model returned no usable content block")
+
+
+_LOGPROB_KEYS = {"logprobs", "top_logprobs"}
+
+
+def _has_logprobs(kwargs: dict) -> bool:
+    return bool(_LOGPROB_KEYS & kwargs.keys()) or "prompt_logprobs" in (
+        kwargs.get("extra_body") or {}
+    )
+
+
+def _without_logprobs(kwargs: dict) -> dict:
+    return _without_prompt_logprobs(
+        {key: value for key, value in kwargs.items() if key not in _LOGPROB_KEYS}
+    )
+
+
+def _without_prompt_logprobs(kwargs: dict) -> dict:
+    cleaned = dict(kwargs)
+    extra = {key: value for key, value in (kwargs.get("extra_body") or {}).items()
+             if key != "prompt_logprobs"}
+    if extra:
+        cleaned["extra_body"] = extra
+    else:
+        cleaned.pop("extra_body", None)
+    return cleaned
+
+
+def _is_logprobs_rejection(error: Exception) -> bool:
+    return "logprob" in str(error).lower()
 
 
 def _is_sampling_rejection(error: Exception) -> bool:

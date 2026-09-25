@@ -25,6 +25,7 @@ stopped.
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import logging
 import re
@@ -37,9 +38,28 @@ from typing import Optional
 import yaml
 
 from .chunker import Chunker
+from .confidence import (
+    ConfidenceSettings,
+    ConfidenceTracker,
+    print_buckets,
+    write_corpus_report,
+    write_sidecar,
+)
 from .cli import configure_logging, configure_stdio
 from .config import DEFAULT_LLM_CONFIG
 from .consolidate import Consolidator
+from .ensemble import (
+    EnsembleSettings,
+    compare_graphs,
+    ensemble_enabled_in_config,
+    ensemble_from_config,
+    print_summary as print_agreement,
+    remap_after_reconciliation,
+    witness_graph_path,
+    write_corpus_report as write_agreement_report,
+)
+from .ensemble import finalize as finalize_agreement
+from .ensemble import sidecar_path as agreement_sidecar_path
 from .graph_io import atomic_write_json, load_graph, save_graph, validate_graph
 from .llm_client import LLMClient, LLMError, LLMSettings
 from .normalize import NormalizationReport, normalize_graph
@@ -174,6 +194,7 @@ def extract_from_markdown(
     examples: Optional[str] = None,
     domain: Optional[str] = None,
     annotator: Optional[str] = None,
+    confidence: Optional[ConfidenceTracker] = None,
 ) -> tuple[dict, dict]:
     """Extract a causal graph from article markdown.
 
@@ -182,7 +203,9 @@ def extract_from_markdown(
     cause and effect sit in different sections. Chunking exists for models that
     cannot hold a full paper.
 
-    Returns ``(graph, run_report)``.
+    Returns ``(graph, run_report)``. With a ``confidence`` tracker, each
+    reply's token logprobs are scored per item and followed through
+    normalization and consolidation to the ids the returned graph carries.
     """
     started = time.time()
     system_prompt = build_system_prompt(domain)
@@ -221,9 +244,20 @@ def extract_from_markdown(
             # The prompt already documents every class, slot and enum in prose.
             schema_in_prompt=False,
         )
+        # Scored before anything touches ``raw``: the scorer re-parses the
+        # reply text and checks it arrives at exactly this object.
+        scored = (
+            confidence.score_chunk(
+                number, client.last_trace, raw, chunk.text,
+                client.trace_unavailable or "the endpoint returned no logprobs",
+            )
+            if confidence else {}
+        )
         _attach_spans(raw, chunk.text, chunk.start_char, chunk.section)
         graph, report = normalize_graph(raw, profile, source_document)
         _merge_reports(normalization, report)
+        if confidence:
+            confidence.bind_chunk(number, graph, scored, raw, chunk.start_char)
         chunk_graphs.append(graph)
         chunk_details.append(
             {
@@ -241,6 +275,10 @@ def extract_from_markdown(
 
     consolidator = Consolidator(schema_version=profile.version)
     graph, consolidation = consolidator.consolidate(chunk_graphs)
+    if confidence:
+        confidence.after_consolidation(
+            consolidation.node_id_maps, consolidation.edge_id_maps
+        )
     # Who annotated this. The model cannot be trusted to report its own name,
     # so it is stamped here rather than asked for.
     stamp = annotator or annotator_stamp(profile, client.settings.model)
@@ -365,6 +403,8 @@ def annotate_documents(
     schema_path: Optional[Path] = None,
     grounder: Optional[Grounder] = None,
     reconciler: Optional[NodeReconciler] = None,
+    confidence: Optional[ConfidenceSettings] = None,
+    ensemble: Optional[EnsembleSettings] = None,
 ) -> list[dict]:
     """Annotate every document that has markdown, writing one graph each.
 
@@ -377,8 +417,21 @@ def annotate_documents(
     Then reconciliation against the graph being added to, so a node that
     already exists is *that* node — extraction attaches new evidence to the
     corpus rather than beside it.
+
+    With ``confidence`` settings, every graph gets a ``<slug>.confidence.json``
+    beside it: per node and edge, how sure the model's tokens were, keyed by
+    the ids in the saved graph.
+
+    With ``ensemble`` settings, each witness model extracts the same article
+    and ``<slug>.agreement.json`` records where it agrees with the primary,
+    where it contradicts it, and what it found that the primary did not. The
+    saved graph is the primary's either way. A document annotated on an
+    earlier run is checked too, so witnesses can be added to a finished
+    corpus without re-extracting it.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
+    extraction = {"examples": examples, "domain": domain, "overlap": overlap,
+                  "max_chunk_characters": max_chunk_characters}
     results: list[dict] = []
 
     for index, row in enumerate(documents, 1):
@@ -407,6 +460,18 @@ def annotate_documents(
                         "edges": len(existing.get("edges") or []),
                     }
                 )
+                if ensemble and not agreement_sidecar_path(destination).exists():
+                    LOGGER.info("[%d/%d] %s: already annotated; checking it against "
+                                "the witnesses", index, len(documents), slug)
+                    summary = check_agreement(
+                        ensemble, slug,
+                        markdown_path.read_text(encoding="utf-8", errors="replace"),
+                        source_document_from_row(row, profile), existing, existing, [],
+                        profile, out_dir, destination, grounder, extraction, force,
+                        {"slug": slug, "document_id": row.get("document_id")},
+                    )
+                    _add_to_report(out_dir / f"{slug}.report.json", "agreement", summary)
+                    record["agreement_flagged_edges"] = summary["flagged_edges"]
                 results.append(record)
                 LOGGER.info("[%d/%d] %s: already annotated", index, len(documents), slug)
                 continue
@@ -420,11 +485,13 @@ def annotate_documents(
             "[%d/%d] %s: annotating %d characters",
             index, len(documents), slug, len(text),
         )
+        tracker = ConfidenceTracker(confidence, profile) if confidence else None
         try:
             graph, run_report = extract_from_markdown(
                 text, profile, client, source_document,
                 max_chunk_characters=max_chunk_characters,
                 overlap=overlap, examples=examples, domain=domain,
+                confidence=tracker,
             )
         except LLMError as error:
             # One unanswerable article must not end a corpus run.
@@ -445,6 +512,11 @@ def annotate_documents(
                 index, len(documents), slug, grounding.grounded, grounding.unresolved,
             )
 
+        # Witnesses are compared with the graph as the primary extracted it:
+        # reconciliation is about to swap node wording for the corpus's,
+        # which the witnesses never saw.
+        as_extracted = copy.deepcopy(graph) if ensemble else None
+
         reconciliation = ReconciliationReport()
         if reconciler:
             reconciliation = reconciler.reconcile(graph)
@@ -455,14 +527,48 @@ def annotate_documents(
                     reconciliation.matched, reconciliation.unmatched,
                 )
 
+        if tracker:
+            tracker.after_reconciliation(reconciliation.matches)
+
         validation = validate_graph(graph, schema_path or profile.schema_path)
         save_graph(graph, destination)
+        extra: dict = {}
+        if tracker:
+            sidecar = tracker.finalize(
+                graph, {"slug": slug, "document_id": row.get("document_id")}
+            )
+            write_sidecar(destination, sidecar)
+            extra["confidence"] = {
+                key: value for key, value in sidecar["summary"].items()
+                if key != "review_first"
+            }
+            buckets = sidecar["summary"]["buckets"]["edges"]
+            record["confidence_edges"] = {
+                bucket: buckets[bucket] for bucket in ("high", "medium", "low")
+            }
+            LOGGER.info(
+                "[%d/%d] %s: edge confidence high %d, medium %d, low %d",
+                index, len(documents), slug,
+                buckets["high"], buckets["medium"], buckets["low"],
+            )
+        if ensemble:
+            # After the primary graph is safely on disk: witnesses are the
+            # slow, optional part, and a failure there must not cost it.
+            summary = check_agreement(
+                ensemble, slug, text, source_document, as_extracted, graph,
+                reconciliation.matches, profile, out_dir, destination, grounder,
+                extraction, force,
+                {"slug": slug, "document_id": row.get("document_id")},
+            )
+            extra["agreement"] = summary
+            record["agreement_flagged_edges"] = summary["flagged_edges"]
         atomic_write_json(out_dir / f"{slug}.report.json",
                           {**run_report,
                            "grounding": grounding.to_dict(),
                            "reconciliation": reconciliation.to_dict(),
                            "validation": {
-                              "ok": validation.ok, "problems": validation.problems}})
+                              "ok": validation.ok, "problems": validation.problems},
+                           **extra})
         record.update(
             {
                 "status": "annotated" if validation.ok else "annotated_invalid",
@@ -485,6 +591,89 @@ def annotate_documents(
         )
 
     return results
+
+
+def check_agreement(
+    ensemble: EnsembleSettings,
+    slug: str,
+    text: str,
+    source_document: dict,
+    as_extracted: dict,
+    graph: dict,
+    reconciled: list[dict],
+    profile: ExtractionProfile,
+    out_dir: Path,
+    destination: Path,
+    grounder: Optional[Grounder],
+    extraction: dict,
+    force: bool,
+    document: dict,
+) -> dict:
+    """Extract with every witness, compare with the primary, write the sidecar.
+
+    Witness graphs are kept under ``<out-dir>/witnesses/<name>/`` and reused on
+    a re-run, so adding a fourth witness costs one model's time, not four.
+    They are grounded with the same grounder as the primary, so both sides
+    are compared in the same CURIEs. They are not reconciled against
+    ``--into``: nothing of theirs is saved into the corpus.
+    """
+    runs: list[dict] = []
+    graphs: dict[str, dict] = {}
+    for witness in ensemble.witnesses:
+        path = witness_graph_path(out_dir, witness, slug)
+        run = witness.describe()
+        if path.exists() and not force:
+            try:
+                graphs[witness.name] = load_graph(path)
+                runs.append({**run, "status": "reused"})
+                continue
+            except (OSError, ValueError) as error:
+                LOGGER.warning("Re-extracting %s with %s: saved graph unreadable (%s)",
+                               slug, witness.name, error)
+        LOGGER.info("%s: extracting with witness %s (%s)",
+                    slug, witness.name, witness.settings.model)
+        try:
+            witness_graph, report = extract_from_markdown(
+                text, profile, witness.client(), source_document,
+                max_chunk_characters=(witness.max_chunk_characters
+                                      or extraction["max_chunk_characters"]),
+                overlap=extraction["overlap"], examples=extraction["examples"],
+                domain=extraction["domain"],
+            )
+        except LLMError as error:
+            # A witness that cannot answer leaves the others to vote.
+            runs.append({**run, "status": "failed", "error": str(error)})
+            LOGGER.warning("%s: witness %s failed: %s", slug, witness.name, error)
+            continue
+        if grounder is not None:
+            grounder.ground_graph(witness_graph, profile)
+        save_graph(witness_graph, path)
+        graphs[witness.name] = witness_graph
+        runs.append({**run, "status": "extracted",
+                     "nodes": len(witness_graph.get("nodes") or []),
+                     "edges": len(witness_graph.get("edges") or []),
+                     "seconds": report["elapsed_seconds"]})
+
+    result = compare_graphs(as_extracted, graphs, ensemble)
+    remap_after_reconciliation(result, reconciled)
+    sidecar = finalize_agreement(result, graph, runs, ensemble, document)
+    atomic_write_json(agreement_sidecar_path(destination), sidecar)
+    summary = sidecar["summary"]
+    LOGGER.info(
+        "%s: %d of %d edge(s) flagged by %d witness(es), %d possible omission(s)",
+        slug, summary["flagged_edges"], len(sidecar["edges"]),
+        len(summary["checked_by"]), summary["possible_omissions"],
+    )
+    return summary
+
+
+def _add_to_report(path: Path, key: str, value: dict) -> None:
+    try:
+        report = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    except (OSError, ValueError):
+        report = {}
+    report[key] = value
+    atomic_write_json(path, report)
 
 
 def _markdown_path(row: dict, markdown_dir: Optional[Path]) -> Optional[Path]:
@@ -528,6 +717,95 @@ def add_model_arguments(parser: argparse.ArgumentParser) -> None:
         choices=("json_object", "json_schema", "tool_use", "prompt_only"),
     )
     tuning.add_argument("--max-tokens", type=int, help="Override the generation budget")
+
+    confidence = parser.add_argument_group(
+        "confidence (token logprobs; large output)"
+    )
+    confidence.add_argument(
+        "--confidence", action="store_true",
+        help="Request token logprobs and write <slug>.confidence.json per graph, "
+             "plus confidence_summary.md for reviewers. OpenAI-compatible "
+             "endpoints only (vLLM, OpenAI, recent Ollama)",
+    )
+    confidence.add_argument(
+        "--top-logprobs", type=int,
+        help="Alternatives recorded per generated token (max 20; default from "
+             "config/pipeline.yaml)",
+    )
+    confidence.add_argument(
+        "--prompt-logprobs", type=int, nargs="?", const=0, metavar="K",
+        help="vLLM only: also score the article itself (perplexity, the most "
+             "surprising passages). Implies --confidence. Costly on long prompts",
+    )
+
+    ensemble = parser.add_argument_group(
+        "ensemble (cross-model agreement; one extra extraction per witness)"
+    )
+    ensemble.add_argument(
+        "--ensemble", action="store_true",
+        help="Also extract each article with the witness models in "
+             "ensemble.witnesses, and flag primary nodes and edges they disagree "
+             "with. The saved graph is always the primary model's",
+    )
+    ensemble.add_argument(
+        "--witness", action="append", metavar="NAME_OR_MODEL",
+        help="Use this witness (repeatable; implies --ensemble). A configured "
+             "witness name, or a model id served by the primary endpoint",
+    )
+    ensemble.add_argument(
+        "--ensemble-min-score", type=float,
+        help="How alike two models' nodes must be to count as the same "
+             "variable (default: ensemble.match_min_score)",
+    )
+
+
+def client_overrides(args: argparse.Namespace) -> dict:
+    """LLMClient overrides from the command line; ``None`` leaves config alone."""
+    wants_confidence = args.confidence or args.prompt_logprobs is not None
+    return {
+        "model": args.model,
+        "endpoint": args.endpoint,
+        "structured_output": args.structured_output,
+        "max_tokens": args.max_tokens,
+        "logprobs": True if wants_confidence else None,
+        "top_logprobs": args.top_logprobs,
+        "prompt_logprobs": args.prompt_logprobs,
+    }
+
+
+def ensemble_settings(
+    args: argparse.Namespace, llm_config: Path, client: LLMClient
+) -> Optional[EnsembleSettings]:
+    """Witnesses for this run, or ``None`` when the ensemble is off."""
+    if not (args.ensemble or args.witness or ensemble_enabled_in_config(llm_config)):
+        return None
+    try:
+        ensemble = ensemble_from_config(
+            llm_config, client.settings, args.witness, args.ensemble_min_score
+        )
+    except ValueError as error:
+        raise SystemExit(f"error: {error}") from error
+    LOGGER.info("Ensemble: primary %s, witnesses %s", client.settings.model,
+                ", ".join(f"{w.name} ({w.settings.model})" for w in ensemble.witnesses))
+    return ensemble
+
+
+def confidence_settings(
+    llm_config: Path, client: LLMClient
+) -> Optional[ConfidenceSettings]:
+    """Confidence settings for this run, or ``None`` when it is off."""
+    if not client.settings.logprobs:
+        return None
+    settings = ConfidenceSettings.from_config(llm_config)
+    settings.enabled = True
+    settings.top_logprobs = client.settings.top_logprobs
+    settings.prompt_logprobs = client.settings.prompt_logprobs
+    if client.settings.provider == "anthropic":
+        LOGGER.warning(
+            "--confidence: the Anthropic API does not return logprobs; every "
+            "document will be reported as unscored"
+        )
+    return settings
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -682,13 +960,9 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--manifest requires --out-dir")
 
     settings = LLMSettings.from_config(args.llm_config)
-    client = LLMClient(
-        settings,
-        model=args.model,
-        endpoint=args.endpoint,
-        structured_output=args.structured_output,
-        max_tokens=args.max_tokens,
-    )
+    client = LLMClient(settings, **client_overrides(args))
+    confidence = confidence_settings(args.llm_config, client)
+    ensemble = ensemble_settings(args, args.llm_config, client)
     LOGGER.info(
         "Annotating %d document(s) with %s @ %s (schema %s v%s)",
         len(rows), client.settings.model, client.settings.endpoint,
@@ -708,7 +982,7 @@ def main(argv: list[str] | None = None) -> int:
         markdown_dir=args.markdown_dir, examples=examples, domain=args.domain,
         max_chunk_characters=args.max_chunk_characters, overlap=args.overlap,
         force=args.force, schema_path=args.schema, grounder=grounder,
-        reconciler=reconciler,
+        reconciler=reconciler, confidence=confidence, ensemble=ensemble,
     )
 
     if args.article and args.out:
@@ -726,6 +1000,10 @@ def main(argv: list[str] | None = None) -> int:
     for status, count in sorted(counts.items(), key=lambda item: -item[1]):
         print(f"    {count:5d}  {status}")
     print(f"  wrote {out_dir / 'annotation_report.json'}")
+    if confidence:
+        print_buckets(write_corpus_report(out_dir, out_dir, confidence))
+    if ensemble:
+        print_agreement(write_agreement_report(out_dir, out_dir, ensemble))
     return 0 if not counts.get("failed") else 1
 
 

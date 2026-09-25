@@ -26,6 +26,11 @@ class ConsolidationReport:
     edges_in: int = 0
     edges_out: int = 0
     merged_node_groups: list[dict] = field(default_factory=list)
+    #: Per input graph, in order: the id each node and edge had going in, to
+    #: the id it has coming out. Not reported (it is as large as the graph);
+    #: it is what lets anything keyed by the old ids follow along.
+    node_id_maps: list[dict[str, str]] = field(default_factory=list)
+    edge_id_maps: list[dict[str, str]] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return {
@@ -101,10 +106,12 @@ class Consolidator:
         nodes_by_key: dict[tuple, dict] = {}
         source_ids: dict[tuple, list[str]] = {}
         edges: list[dict] = []
+        edge_origins: list[tuple[int, str, dict]] = []
         documents: dict[str, dict] = {}
 
-        for graph in graphs:
+        for graph_index, graph in enumerate(graphs):
             id_map: dict[str, str] = {}
+            report.node_id_maps.append(id_map)
 
             for original in graph.get("nodes") or []:
                 report.nodes_in += 1
@@ -149,6 +156,7 @@ class Consolidator:
                         comparator["comparator_node_id"],
                     )
                 edges.append(edge)
+                edge_origins.append((graph_index, str(original.get("id")), edge))
 
             for document in graph.get("source_documents") or []:
                 if document.get("document_id"):
@@ -162,6 +170,7 @@ class Consolidator:
                     {"id": nodes_by_key[key]["id"], "merged_from": ids}
                 )
 
+        survivor: dict[int, dict] = {}
         if self.deduplicate_edges:
             unique: dict[tuple, dict] = {}
             for edge in edges:
@@ -170,6 +179,7 @@ class Consolidator:
                     self._merge_edge(unique[identity], edge)
                 else:
                     unique[identity] = edge
+                survivor[id(edge)] = unique[identity]
             edges = list(unique.values())
 
         # Ids are only assigned now: they hash the final endpoint ids, so an
@@ -186,6 +196,11 @@ class Consolidator:
                 edge.get("object"),
                 edge.get("original_sentence"),
                 _document_ref(edge.get("source_document")),
+            )
+        report.edge_id_maps = [{} for _ in graphs]
+        for graph_index, original_id, edge in edge_origins:
+            report.edge_id_maps[graph_index][original_id] = (
+                survivor.get(id(edge), edge)["id"]
             )
 
         report.nodes_out = len(nodes_by_key)

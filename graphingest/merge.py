@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Optional
 
 from .cli import configure_logging, configure_stdio
+from .confidence import write_merged_index
 from .consolidate import Consolidator
 from .graph_io import (
     atomic_write_json,
@@ -47,7 +48,9 @@ GRAPH_SUFFIXES = ("*.yaml", "*.yml", "*.json")
 #: Report files the pipeline writes next to the graphs. They are not graphs,
 #: and picking them up would fail the load with a confusing error.
 _NOT_GRAPHS = {"annotation_report.json", "conversion_report.json",
-               "manifest.json", "merge_report.json", "validation.json"}
+               "manifest.json", "merge_report.json", "validation.json",
+               "confidence_report.json", "confidence_index.json",
+               "agreement_report.json", "agreement_index.json"}
 
 
 def collect_paths(inputs: list[Path]) -> list[Path]:
@@ -61,6 +64,8 @@ def collect_paths(inputs: list[Path]) -> list[Path]:
                     for path in sorted(item.glob(suffix))
                     if path.name not in _NOT_GRAPHS
                     and not path.name.endswith(".report.json")
+                    and not path.name.endswith(".confidence.json")
+                    and not path.name.endswith(".agreement.json")
                 )
         elif item.exists():
             paths.append(item)
@@ -75,8 +80,12 @@ def merge_graphs(
     existing: Optional[dict] = None,
     graph_id: Optional[str] = None,
     merge_nodes: bool = True,
+    id_maps: Optional[dict] = None,
 ) -> tuple[dict, dict]:
     """Consolidate ``graphs``, with ``existing`` (if any) merged in first.
+
+    Pass a dict as ``id_maps`` to receive ``nodes`` and ``edges``: per input
+    graph (``existing`` first), the old id of each item to its merged id.
 
     Order matters: the Consolidator keeps the first graph's provenance and the
     first-seen value of any slot, so putting the existing graph first means an
@@ -89,6 +98,9 @@ def merge_graphs(
     merged, report = consolidator.consolidate(
         ordered, graph_id or (existing or {}).get("graph_id")
     )
+    if id_maps is not None:
+        id_maps["nodes"] = report.node_id_maps
+        id_maps["edges"] = report.edge_id_maps
 
     provenance = merged.setdefault("provenance", {})
     provenance.setdefault("ontology_framework", (existing or {}).get(
@@ -162,11 +174,12 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("no graph files found")
     LOGGER.info("Merging %d graph(s)", len(paths))
 
-    graphs, sources = [], []
+    graphs, sources, loaded = [], [], []
     for path in paths:
         try:
             graphs.append(load_graph(path))
             sources.append(str(path))
+            loaded.append(path)
         except (OSError, ValueError) as error:
             LOGGER.error("Could not load %s: %s", path, error)
 
@@ -186,8 +199,10 @@ def main(argv: list[str] | None = None) -> int:
             LOGGER.warning("--into %s does not exist yet; creating it", args.into)
 
     version = schema_version(load_schema(args.schema))
+    id_maps: dict = {}
     merged, report = merge_graphs(
-        graphs, version, existing, args.graph_id, merge_nodes=not args.no_merge_nodes
+        graphs, version, existing, args.graph_id,
+        merge_nodes=not args.no_merge_nodes, id_maps=id_maps,
     )
 
     written: list[Path] = []
@@ -208,6 +223,9 @@ def main(argv: list[str] | None = None) -> int:
     atomic_write_json(report_dir / "merge_report.json",
                       {"sources": sources, "into": str(args.into) if args.into else None,
                        **report})
+    # Per-document sidecars (confidence, agreement) are keyed by per-document
+    # ids; the merge re-derives ids, so re-key them for the merged graph.
+    written.extend(write_merged_index(loaded, id_maps, existing is not None, report_dir))
 
     print(f"\nMerged {len(graphs)} graph(s)" + (f" into {args.into}" if args.into else ""))
     print(f"  nodes: {report['nodes_in']} in -> {report['nodes_out']} out "

@@ -27,6 +27,23 @@ Everything lands under ``--out-dir``:
     build/merge_report.json        what merged with what
     build/validation.json          the validator's verdict
 
+With ``--confidence`` (token logprobs from an OpenAI-compatible endpoint):
+
+    build/graphs/<slug>.confidence.json  per node and edge: scores, the
+                                   alternatives the model weighed, every token
+    build/confidence_summary.md    for reviewers: buckets, what to check first
+    build/confidence_report.json   the same, as data
+    build/confidence_index.json    the sidecars re-keyed to the merged graph
+
+With ``--ensemble`` (witness models; the graph stays the primary's):
+
+    build/graphs/<slug>.agreement.json   per node and edge: agreed, partial,
+                                   conflict or unsupported, and what differed
+    build/graphs/witnesses/<name>/<slug>.yaml   each witness's own graph
+    build/agreement_summary.md     for reviewers: flagged claims, possible omissions
+    build/agreement_report.json    the same, as data
+    build/agreement_index.json     the sidecars re-keyed to the merged graph
+
 Rerunning skips work already done, so an interrupted run resumes and a corpus
 that gained three new PDFs costs three conversions rather than fifty. Pass
 ``--force`` to redo everything, or ``--stop-after ris`` to look before you
@@ -54,6 +71,9 @@ from .merge import collect_paths, merge_graphs
 from .reconcile import DEFAULT_MIN_SCORE as DEFAULT_RECONCILE_SCORE
 from .reconcile import NodeReconciler
 from .schema import DEFAULT_SCHEMA, build_extraction_profile
+from .confidence import print_buckets, write_corpus_report, write_merged_index
+from .ensemble import print_summary as print_agreement
+from .ensemble import write_corpus_report as write_agreement_report
 
 LOGGER = logging.getLogger("ingest.run")
 
@@ -225,11 +245,10 @@ def main(argv: list[str] | None = None) -> int:
         )
     client = LLMClient(
         LLMSettings.from_config(args.llm_config),
-        model=args.model,
-        endpoint=args.endpoint,
-        structured_output=args.structured_output,
-        max_tokens=args.max_tokens,
+        **annotate_module.client_overrides(args),
     )
+    confidence = annotate_module.confidence_settings(args.llm_config, client)
+    ensemble = annotate_module.ensemble_settings(args, args.llm_config, client)
     LOGGER.info("Inference: %s @ %s", client.settings.model, client.settings.endpoint)
 
     # Extraction resolves against the graph it is being added to, so a node
@@ -246,7 +265,7 @@ def main(argv: list[str] | None = None) -> int:
         markdown_dir=markdown_dir, examples=examples, domain=args.domain,
         max_chunk_characters=args.max_chunk_characters, overlap=args.overlap,
         force=args.force, schema_path=args.schema, grounder=grounder,
-        reconciler=reconciler,
+        reconciler=reconciler, confidence=confidence, ensemble=ensemble,
     )
     atomic_write_json(out_dir / "annotation_report.json",
                       {"total": len(annotation),
@@ -254,6 +273,10 @@ def main(argv: list[str] | None = None) -> int:
                        "results": annotation})
     atomic_write_json(manifest_path, manifest)
     _print_tally(annotate_module.tally(annotation))
+    if confidence:
+        print_buckets(write_corpus_report(graphs_dir, out_dir, confidence))
+    if ensemble:
+        print_agreement(write_agreement_report(graphs_dir, out_dir, ensemble))
     if args.stop_after == "annotate":
         print(f"\nStopped after 'annotate'. Graphs in {graphs_dir}")
         return 0
@@ -265,24 +288,28 @@ def main(argv: list[str] | None = None) -> int:
         print("  nothing to merge: no document graph was produced")
         return 1
 
-    graphs, sources = [], []
+    graphs, sources, loaded = [], [], []
     for path in paths:
         try:
             graphs.append(load_graph(path))
             sources.append(str(path))
+            loaded.append(path)
         except (OSError, ValueError) as error:
             LOGGER.error("Could not load %s: %s", path, error)
 
     existing = _load_existing(args.into)
+    id_maps: dict = {}
     merged, report = merge_graphs(
         graphs, profile.version, existing, args.graph_id,
-        merge_nodes=not args.no_merge_nodes,
+        merge_nodes=not args.no_merge_nodes, id_maps=id_maps,
     )
     save_graph(merged, out_dir / "causal_graph.yaml")
     save_graph(merged, out_dir / "causal_graph.json")
     atomic_write_json(out_dir / "merge_report.json",
                       {"sources": sources,
                        "into": str(args.into) if args.into else None, **report})
+    for index in write_merged_index(loaded, id_maps, existing is not None, out_dir):
+        print(f"  re-keyed to the merged graph: {index}")
 
     print(f"  nodes: {report['nodes_in']} in -> {report['nodes_out']} out "
           f"({report['nodes_merged']} merged)")
