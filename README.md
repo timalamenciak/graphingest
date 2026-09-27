@@ -3,13 +3,66 @@
 Point it at a folder of PDFs with an RIS export and get back a Causal Mosaic
 graph, merged into the one you already have.
 
+## Quick start
+
+Once, from this directory:
+
 ```bash
-python -m graphingest.run "/path/to/mosquito_corpus" \
-    --out-dir build \
-    --into ~/mosaic/causal_graph.yaml \
+pip install -e ".[marker,dev]"
+export BRINE_BASE_URL="https://your-endpoint/v1"   # the primary model's endpoint
+export BRINE_API_KEY="..."                          # read from the environment, never from the file
+```
+
+`config/pipeline.yaml` decides which models run; see
+[Where inference runs](#where-inference-runs).
+
+**Annotate a single PDF.** The pipeline reads folders, so give the PDF a
+folder of its own. An RIS file beside it is optional: without one, the author,
+year and title are parsed from the filename.
+
+```bash
+mkdir -p ~/papers/murphy_2005 && cp murphy_2005.pdf ~/papers/murphy_2005/
+python -m graphingest.run ~/papers/murphy_2005 \
+    --out-dir build/murphy_2005 \
     --example examples/murphy_2005_camo_annotation_revised.yaml \
     --domain "restoration ecology"
 ```
+
+The graph is `build/murphy_2005/graphs/<slug>.yaml`, with what the model did
+in `<slug>.report.json` beside it.
+
+**Annotate a folder of PDFs with full quality tracking.** `--confidence`
+scores every node and edge from token logprobs. `--ensemble` has each witness
+model in `ensemble.witnesses` extract the same articles and flags every claim
+they disagree with or missed.
+
+```bash
+python -m graphingest.run "/path/to/corpus" \
+    --out-dir build \
+    --converter marker \
+    --into ~/mosaic/causal_graph.yaml \
+    --example examples/murphy_2005_camo_annotation_revised.yaml \
+    --domain "restoration ecology" \
+    --confidence \
+    --ensemble
+```
+
+Read `build/confidence_summary.md` and `build/agreement_summary.md` first:
+they list the claims to review, and why. The merged graph is
+`build/causal_graph.yaml`. `--into` is read and never written unless you add
+`--in-place`. Drop `--into` to build a new graph from this corpus alone. On a
+vLLM primary, add `--prompt-logprobs` to also flag articles that were garbled
+in conversion.
+
+Every run resumes. Rerun the same command after an interruption, or after
+adding witnesses, and only the missing work is done.
+
+The installed scripts `graph-ingest`, `graph-ingest-ris`,
+`graph-ingest-convert`, `graph-ingest-annotate`, `graph-ingest-merge` and
+`graph-ingest-validate` are the same as `python -m graphingest.run`,
+`graphingest.ris` and so on.
+
+## How it works
 
 Four stages, each resumable and each usable on its own:
 
@@ -53,29 +106,41 @@ and how terms are grounded.
 ```bash
 pip install -e .
 pip install -e ".[marker,dev]"     # layout-aware PDF conversion, tests
+pip install -e ".[pymupdf]"        # fast text-layer conversion, no models
+pip install -e ".[anthropic]"      # only for provider: anthropic
+pip install -e ".[oaklib]"         # only for "oaklib:" grounding routes
 ```
 
 Install it editable: the schema, the config and the worked examples live beside
 the package rather than inside it, and the default paths point at this
 directory.
 
+`marker-pdf` is pinned below 2.0. From 2.0 it needs a separate OCR inference
+server, and `graphingest.convert` still uses the 1.x in-process API.
+
 ## Where inference runs
 
 `config/pipeline.yaml` is the single point of control, read through
 `graphingest.llm_client` — the only module that knows about providers. Repoint
 that file to move the whole pipeline to another machine, or to another
-provider: a **Claude (Anthropic)** block ships commented out beside the Ollama
-one, so switching is an edit to that file and `pip install -e ".[anthropic]"`,
-with `LLM_API_KEY` in the environment. Nothing else in the pipeline changes.
+provider. The default is an OpenAI-compatible endpoint (LiteLLM, vLLM, or
+Ollama at `<host>/v1`). A **Claude (Anthropic)** block ships commented out
+below it, so switching is an edit to that file and
+`pip install -e ".[anthropic]"`, with `ANTHROPIC_API_KEY` in the environment.
+Nothing else in the pipeline changes.
 
 ```yaml
 llm:
-  provider: ollama          # ollama | openai_compatible | anthropic
-  endpoint: "${LLM_ENDPOINT:-http://localhost:11434/v1}"
-  model: "${LLM_MODEL:-qwen3.6:35b}"
-  max_tokens: 16384         # GENERATION budget, not context size
+  provider: openai_compatible   # ollama | openai_compatible | anthropic
+  endpoint: "${BRINE_BASE_URL}"
+  model: "${LLM_MODEL:-openai/models/Qwen3.8-27B}"
+  api_key: "${BRINE_API_KEY:-}"
+  max_tokens: 16384             # GENERATION budget, not context size
   structured_output: json_object
 ```
+
+`${VAR:-default}` is read from the environment, so `LLM_MODEL` switches
+models for one run without editing the file, and so does `--model`.
 
 Three things worth knowing, all learned the hard way and all encoded as
 defaults:
@@ -283,7 +348,10 @@ python -m graphingest.run CORPUS --out-dir build --confidence
 python -m graphingest.run CORPUS --out-dir build --prompt-logprobs     # vLLM: also score the article
 ```
 
-Off by default, because it roughly doubles what a run writes. With it on, the
+Off by default, because it roughly doubles what a run writes. Set
+`confidence.enabled: true` in `config/pipeline.yaml` to turn it on for every
+run, and `confidence.store_tokens: false` to keep the scores without every
+token behind them, which is most of the size. With it on, the
 client asks for `logprobs` and `top_logprobs` on every generated token, and
 `graphingest.confidence` ties each token back to the field it spells. It does
 this by re-parsing the reply with character positions and aligning the tokens
@@ -368,7 +436,28 @@ can. This mode is optional: the model in the `llm:` block stays the
 **primary**, and its graph is the one saved and merged, as without it. Each
 **witness** (listed under `ensemble.witnesses`, or named with `--witness`)
 extracts the same article with the same prompt and one-shot. Its graph is
-grounded the same way and compared against the primary's:
+grounded the same way and compared against the primary's.
+
+Witnesses are declared in `config/pipeline.yaml`:
+
+```yaml
+ensemble:
+  enabled: false                    # true = every run, without --ensemble
+  witnesses:
+    - name: deepseek_flash          # same provider: inherits endpoint, key, budget
+      model: "DeepSeek-V4-Flash-0731"
+      max_chunk_characters: 60000   # a smaller context than the primary's
+    - name: vllm_nemotron           # a different server: say where it is
+      provider: openai_compatible
+      endpoint: "https://spark-1267:8090/v1"
+      model: "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-NVFP4"
+```
+
+A witness on the primary's provider inherits its endpoint, key and budget,
+so it needs only a name and a model. One on another provider inherits only
+`max_tokens` and `timeout`. `--witness NAME` runs one configured witness;
+`--witness <model id>` runs a model the primary endpoint serves without
+configuring it at all. Each primary claim is then marked:
 
 | status | meaning |
 |---|---|
@@ -775,9 +864,17 @@ python -m graphingest.convert --manifest build/manifest.json --out-dir build/mar
     --converter pymupdf          # fast, no models, poor on multi-column scans
 ```
 
-`marker` is the default: layout-aware, reconstructs tables and reading order,
-optionally LLM-assisted. `pymupdf` is the fallback for a smoke test or a clean
-born-digital PDF. A conversion under `--min-words` is recorded as
+`marker` is layout-aware, reconstructs tables and reading order, and is
+optionally LLM-assisted (`marker_llm` in the config, `--no-llm` to switch it
+off). It is also slow: minutes per PDF without a CUDA GPU. `pymupdf` reads the
+text layer in well under a second, and is the choice for a smoke test or a
+clean born-digital PDF.
+
+Without `--converter`, both `graphingest.convert` and `graphingest.run` use
+`convert.default_converter` in `config/pipeline.yaml`, and `marker` if that is
+unset. The config currently says `pymupdf`, for iterating. Switch it back to
+`marker`, or pass `--converter marker`, before a run whose output quality
+matters. A conversion under `--min-words` is recorded as
 `suspect_short` rather than shipped as a stub article — that usually means a
 scan with no text layer, and `--force-ocr`.
 
@@ -795,8 +892,18 @@ python -m graphingest.annotate --manifest build/manifest.json \
 
 One graph per document, plus a `<slug>.report.json` recording what the model
 did: chunks, what normalization coerced or dropped, what grounding resolved,
-what reconciliation matched to the existing graph, and the validator's verdict. `--dry-run` prints the rendered prompt without
-calling anything.
+what reconciliation matched to the existing graph, and the validator's verdict.
+`--dry-run` prints the rendered prompt without calling anything.
+
+`--article` annotates one markdown file that is already converted. Pass
+`--title`, `--doi`, `--year`, `--journal` or `--document-id` to fill its
+source document. `--against` resolves its nodes against an existing graph, as
+`--into` does for `graphingest.run`.
+
+`--manifest` also accepts a SQLite database of markdown documents owned by
+another pipeline. It is opened read-only. The table and the path and metadata
+columns are found by name (`documents`, `markdown_path`, `title`, `doi`, and
+common variants), and relative paths resolve against the database's folder.
 
 `--confidence` and `--ensemble` add their summaries to that report and write
 their sidecars beside the graph. Both are keyed by the ids the saved graph

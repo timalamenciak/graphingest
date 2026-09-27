@@ -104,7 +104,9 @@ def main(argv: list[str] | None = None) -> int:
                         help="Explicit RIS file(s) instead of searching the folder")
 
     parser.add_argument("--converter", choices=convert_module.CONVERTERS,
-                        default="marker")
+                        default=None,
+                        help="Default: convert.default_converter in "
+                             "config/pipeline.yaml, else marker")
     parser.add_argument("--no-llm", action="store_true",
                         help="Disable Marker's LLM assist during conversion")
     parser.add_argument("--force-ocr", action="store_true")
@@ -150,6 +152,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.corpus_dir.is_dir():
         parser.error(f"Not a directory: {args.corpus_dir}")
+    try:
+        args.converter = convert_module.resolve_converter(args.converter, args.llm_config)
+    except ValueError as error:
+        parser.error(str(error))
 
     manifest_path = out_dir / "manifest.json"
     markdown_dir = out_dir / "markdown"

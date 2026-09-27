@@ -101,8 +101,9 @@ class LLMSettings:
             )
         if self.provider == "anthropic" and not self.api_key:
             raise ValueError(
-                "provider 'anthropic' requires an api_key; set LLM_API_KEY in the "
-                "environment (llm.yaml reads it as ${LLM_API_KEY:-})"
+                "provider 'anthropic' requires an api_key; set ANTHROPIC_API_KEY in "
+                "the environment (config/pipeline.yaml reads it as "
+                "${ANTHROPIC_API_KEY:-})"
             )
 
     def resolved_marker_llm(self) -> Optional[dict]:

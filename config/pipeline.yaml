@@ -71,7 +71,7 @@ llm:
   # Claude (Anthropic) — commented out. To use it:
   #
   #   1. pip install -e ".[anthropic]"
-  #   2. export LLM_API_KEY=sk-ant-...        (the client refuses to start without it)
+  #   2. export ANTHROPIC_API_KEY=sk-ant-...  (the client refuses to start without it)
   #   3. comment out provider/endpoint/model/structured_output above,
   #      and uncomment the block below.
   #
@@ -208,7 +208,16 @@ ensemble:
   # Rows per table in agreement_summary.md.
   review_count: 40
 
-  witnesses: []
+  witnesses: 
+    - name: deepseek_flash
+      model: "DeepSeek-V4-Flash-0731"
+      max_chunk_characters: 60000
+    - name: vllm_nemotron
+      provider: openai_compatible
+      endpoint: "https://spark-1267:8090/v1"
+      model: "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-NVFP4"
+      temperature: 0.1
+      max_tokens: 16384
   # witnesses:
   #   - name: llama                         # same endpoint and key as the primary
   #     model: "${WITNESS_MODEL_1:-}"
@@ -225,7 +234,7 @@ ensemble:
 # Marker's LLM assist during PDF conversion can point at a different, cheaper
 # model on the same host. Set enabled: false to run Marker without it.
 marker_llm:
-  enabled: true
+  enabled: false
   endpoint: null      # null = inherit llm.endpoint
   model: null         # null = inherit llm.model
 
