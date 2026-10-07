@@ -19,7 +19,7 @@ llm:
   # OpenAI-compatible base URL. For Ollama this is <host>/v1.
   endpoint: "${BRINE_BASE_URL}"
 
-  model: "${LLM_MODEL:-openai/models/Qwen3.8-27B}"
+  model: "${LLM_MODEL:-Qwen3.8-27B}"
 
   # Read from the environment; ollama ignores it. Never hardcode a real key here.
   api_key: "${BRINE_API_KEY:-}"
@@ -40,6 +40,13 @@ llm:
   # preamble. Drop it to 8192 for a non-reasoning model.
   max_tokens: 16384
   timeout: 600
+
+  # Stream replies (OpenAI-compatible providers). A gateway in front of the
+  # model may close a connection that has sent nothing for 60s; brine's nginx
+  # does. Streaming keeps bytes flowing while a long article is extracted.
+  # It is turned off for a request that asks for vLLM's prompt_logprobs
+  # (--prompt-logprobs), which vLLM only returns unstreamed.
+  stream: true
 
   # How structured output is enforced:
   #   json_object  - server guarantees valid JSON; shape comes from the prompt

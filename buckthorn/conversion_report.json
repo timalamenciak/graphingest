@@ -1,0 +1,113 @@
+{
+  "converter": "pymupdf",
+  "total": 13,
+  "by_status": {
+    "converted": 13
+  },
+  "results": [
+    {
+      "slug": "au2014",
+      "document_id": "doc:au2014",
+      "markdown_path": "buckthorn\\markdown\\au2014.md",
+      "seconds": 0.1,
+      "status": "converted",
+      "word_count": 3879
+    },
+    {
+      "slug": "delanoy2007",
+      "document_id": "doc:delanoy2007",
+      "markdown_path": "buckthorn\\markdown\\delanoy2007.md",
+      "seconds": 0.0,
+      "status": "converted",
+      "word_count": 7366
+    },
+    {
+      "slug": "heneghan2004",
+      "document_id": "doc:heneghan2004",
+      "markdown_path": "buckthorn\\markdown\\heneghan2004.md",
+      "seconds": 0.0,
+      "status": "converted",
+      "word_count": 3611
+    },
+    {
+      "slug": "iannone2013",
+      "document_id": "doc:iannone2013",
+      "markdown_path": "buckthorn\\markdown\\iannone2013.md",
+      "seconds": 0.1,
+      "status": "converted",
+      "word_count": 7061
+    },
+    {
+      "slug": "klionsky2011",
+      "document_id": "doc:klionsky2011",
+      "markdown_path": "buckthorn\\markdown\\klionsky2011.md",
+      "seconds": 0.1,
+      "status": "converted",
+      "word_count": 8360
+    },
+    {
+      "slug": "knight2007",
+      "document_id": "doc:knight2007",
+      "markdown_path": "buckthorn\\markdown\\knight2007.md",
+      "seconds": 0.1,
+      "status": "converted",
+      "word_count": 8922
+    },
+    {
+      "slug": "koning2013",
+      "document_id": "doc:koning2013",
+      "markdown_path": "buckthorn\\markdown\\koning2013.md",
+      "seconds": 0.0,
+      "status": "converted",
+      "word_count": 6600
+    },
+    {
+      "slug": "larkinetal2013",
+      "document_id": "doc:larkinetal2013",
+      "markdown_path": "buckthorn\\markdown\\larkinetal2013.md",
+      "seconds": 0.0,
+      "status": "converted",
+      "word_count": 5973
+    },
+    {
+      "slug": "nagel2008",
+      "document_id": "doc:nagel2008",
+      "markdown_path": "buckthorn\\markdown\\nagel2008.md",
+      "seconds": 0.0,
+      "status": "converted",
+      "word_count": 5007
+    },
+    {
+      "slug": "pergams2006",
+      "document_id": "doc:pergams2006",
+      "markdown_path": "buckthorn\\markdown\\pergams2006.md",
+      "seconds": 0.0,
+      "status": "converted",
+      "word_count": 3970
+    },
+    {
+      "slug": "schuster2022",
+      "document_id": "doc:schuster2022",
+      "markdown_path": "buckthorn\\markdown\\schuster2022.md",
+      "seconds": 0.1,
+      "status": "converted",
+      "word_count": 8078
+    },
+    {
+      "slug": "schuster2024",
+      "document_id": "doc:schuster2024",
+      "markdown_path": "buckthorn\\markdown\\schuster2024.md",
+      "seconds": 0.1,
+      "status": "converted",
+      "word_count": 8017
+    },
+    {
+      "slug": "wragg2020",
+      "document_id": "doc:wragg2020",
+      "markdown_path": "buckthorn\\markdown\\wragg2020.md",
+      "seconds": 0.1,
+      "status": "converted",
+      "word_count": 8802
+    }
+  ]
+}

@@ -1,0 +1,145 @@
+20:59:28 INFO [1/13] au2014: 3879 words in 0.1s
+20:59:28 INFO [2/13] delanoy2007: 7366 words in 0.0s
+20:59:28 INFO [3/13] heneghan2004: 3611 words in 0.0s
+20:59:28 INFO [4/13] iannone2013: 7061 words in 0.1s
+20:59:28 INFO [5/13] klionsky2011: 8360 words in 0.1s
+20:59:28 INFO [6/13] knight2007: 8922 words in 0.1s
+20:59:28 INFO [7/13] koning2013: 6600 words in 0.0s
+20:59:28 INFO [8/13] larkinetal2013: 5973 words in 0.0s
+20:59:29 INFO [9/13] nagel2008: 5007 words in 0.0s
+20:59:29 INFO [10/13] pergams2006: 3970 words in 0.0s
+20:59:29 INFO [11/13] schuster2022: 8078 words in 0.1s
+20:59:29 INFO [12/13] schuster2024: 8017 words in 0.1s
+20:59:29 INFO [13/13] wragg2020: 8802 words in 0.1s
+20:59:29 INFO Loaded 3 curated grounding override(s) from grounding_overrides.yaml
+20:59:29 INFO Inference: openai/models/Qwen3.8-27B @ https://brine.sharcnet.ca/v1
+20:59:29 INFO [1/13] au2014: annotating 25216 characters
+20:59:38 INFO Slot 'structured_aliases': A class without identifiers (structured_alias) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'permissible_values': A class with identifiers (permissible_value) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'include': A class without identifiers (anonymous_enum_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'include': A class without identifiers (anonymous_enum_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'minus': A class without identifiers (anonymous_enum_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'minus': A class without identifiers (anonymous_enum_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'matches': A class without identifiers (match_query) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'matches': A class without identifiers (match_query) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'reachable_from': A class without identifiers (reachability_query) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'reachable_from': A class without identifiers (reachability_query) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'structured_imports': A class without identifiers (import_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'structured_imports': A class without identifiers (import_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'subsets': A class with identifiers (subset_definition) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'types': A class with identifiers (type_definition) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'enums': A class with identifiers (enum_definition) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'slot_definitions': A class with identifiers (slot_definition) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'classes': A class with identifiers (class_definition) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'slot_usage': A class with identifiers (slot_definition) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'enum_range': A class without identifiers (enum_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'enum_range': A class without identifiers (enum_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'range_expression': A class without identifiers (anonymous_class_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'range_expression': A class without identifiers (anonymous_class_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'boolean_slot': A class without identifiers (expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'boolean_slot': A class without identifiers (expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'any_of': A class without identifiers (expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'any_of': A class without identifiers (expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'exactly_one_of': A class without identifiers (expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'exactly_one_of': A class without identifiers (expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'none_of': A class without identifiers (expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'none_of': A class without identifiers (expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'all_of': A class without identifiers (expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'all_of': A class without identifiers (expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'preconditions': A class without identifiers (anonymous_class_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'postconditions': A class without identifiers (anonymous_class_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'elseconditions': A class without identifiers (anonymous_class_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'rules': A class without identifiers (class_rule) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'classification_rules': A class without identifiers (anonymous_class_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'slot_conditions': A class with identifiers (slot_definition) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'attributes': A class with identifiers (slot_definition) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'unique_keys': A class with identifiers (unique_key) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'extra_slots': A class without identifiers (extra_slots_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'extra_slots': A class without identifiers (extra_slots_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'array': A class without identifiers (array_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'array': A class without identifiers (array_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'dimensions': A class without identifiers (dimension_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'dimensions': A class without identifiers (dimension_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'maximum_number_dimensions': A class without identifiers (Anything) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'maximum_number_dimensions': A class without identifiers (Anything) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'has_member': A class without identifiers (anonymous_slot_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'has_member': A class without identifiers (anonymous_slot_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'all_members': A class without identifiers (anonymous_slot_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'all_members': A class without identifiers (anonymous_slot_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'minimum_value': A class without identifiers (Anything) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'minimum_value': A class without identifiers (Anything) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'maximum_value': A class without identifiers (Anything) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'maximum_value': A class without identifiers (Anything) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'structured_pattern': A class without identifiers (pattern_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'structured_pattern': A class without identifiers (pattern_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'bindings': A class without identifiers (enum_binding) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'alt_descriptions': A class with identifiers (alt_description) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'value_object': A class without identifiers (Anything) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'value_object': A class without identifiers (Anything) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'examples': A class without identifiers (example) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'prefixes': A class with identifiers (prefix) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'settings': A class with identifiers (setting) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'import_map': A class with identifiers (setting) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'local_names': A class with identifiers (local_name) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'followed_by': A class without identifiers (expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'followed_by': A class without identifiers (expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'path_rule': A class without identifiers (path_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'path_rule': A class without identifiers (path_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'extensions': A class with identifiers (extension) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'extension_value': A class without identifiers (AnyValue) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'extension_value': A class without identifiers (AnyValue) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'annotations': A class with identifiers (annotation) will be 'inlined' as a dictionary. `inlined_as_list: False` has been set!
+20:59:38 INFO Slot 'unit': A class without identifiers (UnitOfMeasure) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'unit': A class without identifiers (UnitOfMeasure) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'type_expression_any_of': A class without identifiers (anonymous_type_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'type_expression_any_of': A class without identifiers (anonymous_type_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'type_expression_all_of': A class without identifiers (anonymous_type_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'type_expression_all_of': A class without identifiers (anonymous_type_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'type_expression_exactly_one_of': A class without identifiers (anonymous_type_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'type_expression_exactly_one_of': A class without identifiers (anonymous_type_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'type_expression_none_of': A class without identifiers (anonymous_type_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'type_expression_none_of': A class without identifiers (anonymous_type_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'path_expression_followed_by': A class without identifiers (path_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'path_expression_followed_by': A class without identifiers (path_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'path_expression_any_of': A class without identifiers (path_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'path_expression_any_of': A class without identifiers (path_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'path_expression_exactly_one_of': A class without identifiers (path_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'path_expression_exactly_one_of': A class without identifiers (path_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'path_expression_none_of': A class without identifiers (path_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'path_expression_none_of': A class without identifiers (path_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'path_expression_all_of': A class without identifiers (path_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'path_expression_all_of': A class without identifiers (path_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'slot_expression_any_of': A class without identifiers (anonymous_slot_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'slot_expression_any_of': A class without identifiers (anonymous_slot_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'slot_expression_all_of': A class without identifiers (anonymous_slot_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'slot_expression_all_of': A class without identifiers (anonymous_slot_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'slot_expression_exactly_one_of': A class without identifiers (anonymous_slot_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'slot_expression_exactly_one_of': A class without identifiers (anonymous_slot_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'slot_expression_none_of': A class without identifiers (anonymous_slot_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'slot_expression_none_of': A class without identifiers (anonymous_slot_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'class_expression_any_of': A class without identifiers (anonymous_class_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'class_expression_any_of': A class without identifiers (anonymous_class_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'class_expression_all_of': A class without identifiers (anonymous_class_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'class_expression_all_of': A class without identifiers (anonymous_class_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'class_expression_exactly_one_of': A class without identifiers (anonymous_class_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'class_expression_exactly_one_of': A class without identifiers (anonymous_class_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'class_expression_none_of': A class without identifiers (anonymous_class_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'class_expression_none_of': A class without identifiers (anonymous_class_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'class_definition_rules': A class without identifiers (class_rule) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Slot 'extra_slots_expression_range_expression': A class without identifiers (anonymous_slot_expression) MUST be inlined, but nothing specified. `inlined: True` has been automatically set!
+20:59:38 INFO Slot 'extra_slots_expression_range_expression': A class without identifiers (anonymous_slot_expression) will not be typically 'inlined' as a dictionary. `inlined_as_list: True` has been set!
+20:59:38 INFO Importing linkml:types as C:\Users\Tim Alamenciak\AppData\Local\Programs\Python\Python312\Lib\site-packages\linkml_runtime\linkml_model\model\schema\types from source C:\Users\Tim Alamenciak\Documents\RacoonLab\repos\graphingest\schema\causalmosaic.yaml; base_dir=None
+20:59:38 INFO Prepared 1 chunk(s) from 25216 characters (limit=none - whole document)
+20:59:38 INFO Chunk 1/1 (section=document, 25216 chars): requesting extraction
+21:00:42 INFO HTTP Request: POST https://brine.sharcnet.ca/v1/chat/completions "HTTP/1.1 504 Gateway Time-out"
+21:00:42 INFO Retrying request to /chat/completions in 0.432384 seconds
+21:01:43 INFO HTTP Request: POST https://brine.sharcnet.ca/v1/chat/completions "HTTP/1.1 504 Gateway Time-out"
+21:01:43 INFO Retrying request to /chat/completions in 0.852090 seconds
+21:02:44 INFO HTTP Request: POST https://brine.sharcnet.ca/v1/chat/completions "HTTP/1.1 504 Gateway Time-out"
+21:02:44 WARNING Endpoint rejected structured-output request (InternalServerError); retrying with a more permissive format
+21:03:44 INFO HTTP Request: POST https://brine.sharcnet.ca/v1/chat/completions "HTTP/1.1 504 Gateway Time-out"
+21:03:44 INFO Retrying request to /chat/completions in 0.456125 seconds
+21:04:44 INFO HTTP Request: POST https://brine.sharcnet.ca/v1/chat/completions "HTTP/1.1 504 Gateway Time-out"
+21:04:44 INFO Retrying request to /chat/completions in 0.995878 seconds
+21:05:45 INFO HTTP Request: POST https://brine.sharcnet.ca/v1/chat/completions "HTTP/1.1 504 Gateway Time-out"
+21:05:45 WARNING Endpoint rejected structured-output request (InternalServerError); retrying with a more permissive format

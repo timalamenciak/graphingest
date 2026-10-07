@@ -62,6 +62,7 @@ _SETTING_TYPES: dict[str, Any] = {
     "provider": str, "endpoint": str, "model": str, "api_key": str,
     "temperature": float, "max_tokens": int, "timeout": int,
     "structured_output": str, "max_repair_attempts": int, "extra_body": dict,
+    "stream": bool,
 }
 _WITNESS_KEYS = {"name", "max_chunk_characters"}
 

@@ -415,3 +415,58 @@ def test_the_shipped_config_leaves_confidence_off():
     assert settings.enabled is False
     assert settings.bucket(0.95) == "high" and settings.bucket(0.7) == "medium"
     assert settings.bucket(0.2) == "low" and settings.bucket(None) == "unscored"
+
+
+# ---------------------------------------------------------------------------
+# Streamed replies
+# ---------------------------------------------------------------------------
+
+
+class StreamedCompletions:
+    """Sends the reply in pieces, the way a streaming endpoint does."""
+
+    def __init__(self, text: str):
+        self.text = text
+        self.calls: list[dict] = []
+
+    def create(self, **kwargs):
+        self.calls.append(kwargs)
+        pieces = [self.text[i:i + 7] for i in range(0, len(self.text), 7)]
+        thinking = SimpleNamespace(
+            choices=[SimpleNamespace(
+                delta=SimpleNamespace(content=None, reasoning_content="hmm",
+                                      tool_calls=None),
+                logprobs=None, finish_reason=None)])
+        chunks = [thinking] + [
+            SimpleNamespace(choices=[SimpleNamespace(
+                delta=SimpleNamespace(content=piece, tool_calls=None),
+                logprobs=SimpleNamespace(content=[
+                    {"token": piece, "logprob": -0.5, "top_logprobs": []}]),
+                finish_reason=None)])
+            for piece in pieces
+        ]
+        chunks.append(SimpleNamespace(choices=[SimpleNamespace(
+            delta=SimpleNamespace(content=None, tool_calls=None),
+            logprobs=None, finish_reason="stop")]))
+        chunks.append(SimpleNamespace(choices=[]))  # a trailing usage chunk
+        return iter(chunks)
+
+
+def test_streamed_reply_is_reassembled_with_its_tokens():
+    reply = {"nodes": [{"id": "n1"}], "edges": []}
+    completions = StreamedCompletions(json.dumps(reply))
+    client = fake_client(completions)
+    result = client.complete_json("system", "user", {"type": "object"},
+                                  schema_in_prompt=False)
+    assert result == reply
+    assert completions.calls[0]["stream"] is True
+    assert "".join(t.token for t in client.last_trace.tokens) == json.dumps(reply)
+    assert client.last_trace.finish_reason == "stop"
+
+
+def test_prompt_logprobs_are_requested_unstreamed():
+    completions = FakeCompletions([("", {"nodes": [], "edges": []}, {})])
+    client = fake_client(completions, prompt_logprobs=0)
+    client.complete_json("system", "user", {"type": "object"}, schema_in_prompt=False)
+    assert "stream" not in completions.calls[0]
+    assert "prompt_logprobs" in completions.calls[0]["extra_body"]

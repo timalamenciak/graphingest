@@ -16,6 +16,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Optional
 
 from .confidence import (
@@ -52,6 +53,10 @@ class LLMSettings:
     timeout: int = 600
     structured_output: str = "json_schema"
     max_repair_attempts: int = 2
+    #: Stream OpenAI-compatible responses, so a gateway that closes idle
+    #: connections (nginx's 60s default) sees bytes while a long reply is
+    #: still being generated.
+    stream: bool = True
     marker_llm: dict = field(default_factory=dict)
     #: Passed through verbatim on OpenAI-compatible requests: server-specific
     #: switches such as vLLM's ``chat_template_kwargs``.
@@ -79,6 +84,7 @@ class LLMSettings:
             max_repair_attempts=int(
                 block.get("max_repair_attempts", cls.max_repair_attempts)
             ),
+            stream=bool(block.get("stream", cls.stream)),
             marker_llm=data.get("marker_llm") or {},
             extra_body=dict(block.get("extra_body") or {}),
             logprobs=bool(confidence.get("enabled", False)),
@@ -133,6 +139,8 @@ class LLMClient:
         #: Likewise for logprobs: an endpoint that refuses them once will
         #: refuse them for every document.
         self._logprobs_refused = False
+        #: Warned once that prompt_logprobs forced a non-streamed request.
+        self._stream_waived = False
         #: Tokens behind the most recent reply, when logprobs were asked for
         #: and returned; ``None`` otherwise. Read it right after a call.
         self.last_trace: Optional[GenerationTrace] = None
@@ -257,6 +265,18 @@ class LLMClient:
                 extra_body["prompt_logprobs"] = int(self.settings.prompt_logprobs)
         if extra_body:
             kwargs["extra_body"] = extra_body
+        if self.settings.stream:
+            if "prompt_logprobs" in extra_body:
+                # vLLM refuses prompt_logprobs on a streamed request.
+                if not self._stream_waived:
+                    LOGGER.warning(
+                        "Not streaming: vLLM returns prompt_logprobs only on a "
+                        "complete response, so a long reply may hit a gateway "
+                        "timeout"
+                    )
+                    self._stream_waived = True
+            else:
+                kwargs["stream"] = True
         mode = self.settings.structured_output
         if mode == "json_object":
             # No grammar: the server only guarantees syntactically valid JSON.
@@ -375,7 +395,7 @@ class LLMClient:
         while index < len(attempts):
             attempt = attempts[index]
             try:
-                return client.chat.completions.create(**attempt)
+                return _collect(client.chat.completions.create(**attempt))
             except Exception as error:  # noqa: BLE001 - provider errors vary widely
                 last_error = error
                 # A server that refuses logprobs has not refused JSON: drop the
@@ -398,6 +418,10 @@ class LLMClient:
                     self._logprobs_refused = True
                     attempts = [_without_logprobs(candidate) for candidate in attempts]
                     continue
+                # An unreachable or timed-out endpoint has not refused the
+                # format; a looser one would only wait out the same timeout.
+                if _is_transport_failure(error):
+                    break
                 index += 1
                 if index < len(attempts):
                     LOGGER.warning(
@@ -500,6 +524,79 @@ def _without_prompt_logprobs(kwargs: dict) -> dict:
 
 def _is_logprobs_rejection(error: Exception) -> bool:
     return "logprob" in str(error).lower()
+
+
+def _field(item: Any, name: str) -> Any:
+    """An attribute, or a server-specific extra the SDK kept in model_extra."""
+    value = getattr(item, name, None)
+    if value is None:
+        value = (getattr(item, "model_extra", None) or {}).get(name)
+    return value
+
+
+def _collect(result: Any) -> Any:
+    """A streamed completion reassembled into the shape of a complete one.
+
+    Gathers what the callers read: content, reasoning (vLLM's
+    ``reasoning_content`` or ``reasoning``), tool-call arguments, the finish
+    reason and per-token logprobs. A complete response passes through
+    unchanged, so a server or fake that ignores ``stream`` still works.
+    """
+    if hasattr(result, "choices"):
+        return result
+    content: list[str] = []
+    reasoning: list[str] = []
+    calls: dict[int, dict] = {}
+    tokens: list[Any] = []
+    finish_reason = None
+    for chunk in result:
+        for choice in getattr(chunk, "choices", None) or []:
+            delta = choice.delta
+            if delta.content:
+                content.append(delta.content)
+            thought = _field(delta, "reasoning_content") or _field(delta, "reasoning")
+            if thought:
+                reasoning.append(thought)
+            for call in getattr(delta, "tool_calls", None) or []:
+                slot = calls.setdefault(call.index, {"name": "", "arguments": ""})
+                if call.function and call.function.name:
+                    slot["name"] = call.function.name
+                if call.function and call.function.arguments:
+                    slot["arguments"] += call.function.arguments
+            logprobs = getattr(choice, "logprobs", None)
+            if logprobs is not None and logprobs.content:
+                tokens.extend(logprobs.content)
+            if choice.finish_reason:
+                finish_reason = choice.finish_reason
+    tool_calls = [
+        SimpleNamespace(function=SimpleNamespace(**calls[index]))
+        for index in sorted(calls)
+    ]
+    message = SimpleNamespace(
+        content="".join(content) or None,
+        tool_calls=tool_calls or None,
+        reasoning="".join(reasoning) or None,
+    )
+    return SimpleNamespace(
+        choices=[SimpleNamespace(
+            message=message,
+            finish_reason=finish_reason,
+            logprobs=SimpleNamespace(content=tokens) if tokens else None,
+        )],
+        prompt_logprobs=None,
+    )
+
+
+def _is_transport_failure(error: Exception) -> bool:
+    """Timeouts, dropped connections and gateway errors (502/503/504).
+
+    Matched by class name and status code so the openai package stays an
+    optional import here. A plain 500 is not included: Ollama answers a schema
+    it cannot compile with one, and that is a format refusal.
+    """
+    if type(error).__name__ in {"APITimeoutError", "APIConnectionError"}:
+        return True
+    return getattr(error, "status_code", None) in {502, 503, 504}
 
 
 def _is_sampling_rejection(error: Exception) -> bool:

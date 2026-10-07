@@ -133,7 +133,7 @@ Nothing else in the pipeline changes.
 llm:
   provider: openai_compatible   # ollama | openai_compatible | anthropic
   endpoint: "${BRINE_BASE_URL}"
-  model: "${LLM_MODEL:-openai/models/Qwen3.8-27B}"
+  model: "${LLM_MODEL:-Qwen3.8-27B}"
   api_key: "${BRINE_API_KEY:-}"
   max_tokens: 16384             # GENERATION budget, not context size
   structured_output: json_object
